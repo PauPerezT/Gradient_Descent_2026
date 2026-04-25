@@ -1,0 +1,2081 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gradient Descent Explorer</title>
+  <script src="diabetes_data.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f9;
+      --panel: #ffffff;
+      --ink: #13202a;
+      --muted: #627889;
+      --line: #d8e1e8;
+      --teal: #2f586e;
+      --blue: #204251;
+      --soft: #c2d0dc;
+      --green: #6fa845;
+      --orange: #e0772f;
+      --red: #c94134;
+      --yellow: #c29b2e;
+      --violet: #6754a4;
+      --shadow: 0 18px 46px rgba(32, 66, 81, 0.12);
+      font-family: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 247, 249, 0.95)),
+        linear-gradient(90deg, rgba(194, 208, 220, 0.34), transparent 38%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1540px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 26px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 2.8vw, 42px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      color: var(--blue);
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+      max-width: 790px;
+    }
+
+    .source {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      line-height: 1.45;
+    }
+
+    .source a {
+      color: var(--teal);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    .deck-kicker {
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .lecture-strip {
+      min-height: 104px;
+      margin: 0 0 16px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.35fr);
+      background:
+        linear-gradient(90deg, rgba(19, 32, 42, 0.92), rgba(32, 66, 81, 0.82) 45%, rgba(47, 88, 110, 0.54)),
+        url("deck_media/image2.png") center 58% / cover no-repeat;
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .lecture-copy {
+      padding: 18px 22px;
+      align-self: end;
+    }
+
+    .lecture-copy span {
+      display: block;
+      margin-bottom: 8px;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .lecture-copy strong {
+      display: block;
+      max-width: 420px;
+      font-size: clamp(20px, 2.2vw, 32px);
+      line-height: 1.06;
+    }
+
+    .lecture-steps {
+      align-self: end;
+      justify-self: end;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(88px, 1fr));
+      gap: 8px;
+      width: min(620px, 100%);
+      padding: 18px;
+    }
+
+    .lecture-step {
+      border-top: 3px solid rgba(255, 255, 255, 0.75);
+      padding-top: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel,
+    .chart,
+    .metric {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(217, 222, 215, 0.9);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      border-radius: 8px;
+      padding: 16px;
+      position: sticky;
+      top: 14px;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mode-tab {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--blue);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .mode-tab.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .section {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .readout {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 13px;
+    }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .preset {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      background: #fbfcf8;
+      color: var(--ink);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .preset:hover,
+    .preset.active {
+      border-color: var(--teal);
+      background: #edf4f8;
+      transform: translateY(-1px);
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .control:last-child {
+      margin-bottom: 0;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcf8;
+      color: var(--ink);
+      padding: 7px 9px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--teal);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 40px;
+    }
+
+    .switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .knob {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: #cfd6cf;
+      border-radius: 999px;
+      transition: background 160ms ease;
+    }
+
+    .knob::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      transition: transform 160ms ease;
+    }
+
+    .switch input:checked + .knob {
+      background: var(--teal);
+    }
+
+    .switch input:checked + .knob::before {
+      transform: translateX(24px);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .command {
+      min-height: 40px;
+      border: 1px solid var(--ink);
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .command.secondary {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .formula {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      background: #f7f9f4;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #2f4351;
+      font-family: "Cascadia Code", Consolas, ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .trail-card {
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .trail-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 8.4;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .trail-card .metric-sub {
+      padding: 9px 10px 11px;
+      margin: 0;
+      background: #f7fafc;
+    }
+
+    .main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1.3fr repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border-radius: 8px;
+      padding: 13px 14px;
+      min-height: 84px;
+    }
+
+    .metric-name {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: clamp(20px, 1.9vw, 29px);
+      line-height: 1.05;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .diagnosis {
+      border-left: 5px solid var(--teal);
+    }
+
+    .diagnosis[data-state="perfect"] {
+      border-left-color: var(--green);
+    }
+
+    .diagnosis[data-state="vanishing"] {
+      border-left-color: var(--yellow);
+    }
+
+    .diagnosis[data-state="exploding"] {
+      border-left-color: var(--red);
+    }
+
+    .diagnosis[data-state="oscillating"] {
+      border-left-color: var(--orange);
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .chart {
+      border-radius: 8px;
+      min-height: 350px;
+      padding: 12px 12px 10px;
+      display: grid;
+      grid-template-rows: auto minmax(250px, 1fr);
+      gap: 8px;
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      min-height: 26px;
+    }
+
+    .chart-title {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--blue);
+    }
+
+    .chart-note {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 250px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      color: var(--muted);
+      font-size: 12px;
+      align-items: center;
+    }
+
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .dot.closed {
+      background: var(--ink);
+    }
+
+    .dot.data {
+      background: #9aa6a0;
+    }
+
+    .dot.grad {
+      background: var(--violet);
+    }
+
+    .dot.true {
+      background: var(--orange);
+    }
+
+    .dot.layer {
+      background: var(--blue);
+    }
+
+    @media (max-width: 1180px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: static;
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 18px, 1540px);
+        padding-top: 12px;
+      }
+
+      .topbar,
+      .lecture-strip,
+      .status-grid,
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .lecture-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-self: stretch;
+        padding-top: 0;
+      }
+
+      .source {
+        text-align: left;
+      }
+
+      .presets,
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="deck-kicker">Gradient Descent · W1 AIBE Professorship Application</div>
+        <h1>Gradient Descent Explorer</h1>
+        <p class="subtitle">From hiking intuition to machine learning updates: linear regression, then a neural network where gradients can vanish or explode across layers.</p>
+      </div>
+      <div class="source">
+        Dr.-Ing. Paula A. Perez-Toro<br>
+        Dataset: <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html">scikit-learn diabetes</a>
+      </div>
+    </header>
+
+    <section class="lecture-strip" aria-label="Lecture motif">
+      <div class="lecture-copy">
+        <span>Hiking is gradient descent</span>
+        <strong>Follow the slope, choose the pace, update again.</strong>
+      </div>
+      <div class="lecture-steps" aria-label="Gradient descent steps">
+        <div class="lecture-step">Initialization</div>
+        <div class="lecture-step">Gradient</div>
+        <div class="lecture-step">Step size</div>
+        <div class="lecture-step">Update</div>
+      </div>
+    </section>
+
+    <div class="shell">
+      <aside class="panel" aria-label="Gradient descent controls">
+        <section class="section">
+          <div class="label-row">Model</div>
+          <div class="mode-tabs">
+            <button class="mode-tab active" id="linearMode" type="button">Linear model</button>
+            <button class="mode-tab" id="neuralMode" type="button">Neural network</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="label-row">Preset</div>
+          <div class="presets" id="presets"></div>
+        </section>
+
+        <section class="section linear-controls" id="linearControls">
+          <div class="control">
+            <div class="label-row">
+              <label for="feature">Feature</label>
+              <span class="readout" id="featureStats"></span>
+            </div>
+            <select id="feature"></select>
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="label-row" style="margin: 0;">Scale x</div>
+              <div class="metric-sub">Notebook StandardScaler option</div>
+            </div>
+            <label class="switch" aria-label="Scale feature">
+              <input id="scaleX" type="checkbox" checked>
+              <span class="knob"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="section nn-controls hidden" id="nnControls">
+          <div class="control">
+            <div class="label-row">
+              <label for="activation">Activation</label>
+              <span class="readout" id="activationLabel">tanh</span>
+            </div>
+            <select id="activation">
+              <option value="tanh">tanh</option>
+              <option value="sigmoid">sigmoid</option>
+              <option value="relu">ReLU</option>
+            </select>
+          </div>
+
+          <div class="control">
+            <div class="label-row">
+              <label for="depth">Hidden layers</label>
+              <span class="readout" id="depthLabel">3</span>
+            </div>
+            <input id="depth" type="range" min="1" max="10" step="1" value="3">
+          </div>
+
+          <div class="control">
+            <div class="label-row">
+              <label for="width">Neurons per layer</label>
+              <span class="readout" id="widthLabel">10</span>
+            </div>
+            <input id="width" type="range" min="3" max="14" step="1" value="10">
+          </div>
+
+          <div class="control">
+            <div class="label-row">
+              <label for="initPower">Initialization scale</label>
+              <span class="readout" id="initLabel">1.000</span>
+            </div>
+            <input id="initPower" type="range" min="-1.3" max="0.75" step="0.01" value="0">
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="control">
+            <div class="label-row">
+              <label for="etaPower">Learning rate eta</label>
+              <span class="readout" id="etaLabel">0.1000</span>
+            </div>
+            <input id="etaPower" type="range" min="-5" max="0.45" step="0.01" value="-1">
+          </div>
+
+          <div class="control">
+            <div class="label-row">
+              <label for="epochs">Epochs</label>
+              <span class="readout" id="epochsLabel">1500</span>
+            </div>
+            <input id="epochs" type="range" min="5" max="5000" step="5" value="1500">
+          </div>
+
+          <div class="control">
+            <div class="label-row">
+              <label for="iteration">Iteration</label>
+              <span class="readout" id="iterationLabel">1500 / 1500</span>
+            </div>
+            <input id="iteration" type="range" min="0" max="1500" step="1" value="1500">
+          </div>
+
+          <div class="button-row">
+            <button class="command" id="play" type="button">Play</button>
+            <button class="command secondary" id="restart" type="button">Restart</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="label-row" id="formulaTitle">Notebook Equations</div>
+          <div class="formula" aria-label="Gradient descent equations">
+            <span id="eq1">y_hat = w*x + b</span>
+            <span id="eq2">L = mean((y_hat - y)^2)</span>
+            <span id="eq3">dw = 2/n * sum(x*(y_hat-y))</span>
+            <span id="eq4">db = 2/n * sum(y_hat-y)</span>
+            <span id="eq5">w,b = w,b - eta*(dw,db)</span>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="trail-card">
+            <img src="deck_media/image32.png" alt="Small and large learning-rate hiking analogy from the lecture slides">
+            <div class="metric-sub">Small steps move safely; large steps can overshoot the valley.</div>
+          </div>
+        </section>
+      </aside>
+
+      <section class="main" aria-label="Gradient descent results">
+        <div class="status-grid">
+          <article class="metric diagnosis" id="diagnosisCard" data-state="learning">
+            <div class="metric-name">Gradient Health</div>
+            <div class="metric-value" id="health">Learning</div>
+            <div class="metric-sub" id="healthDetail">Updates are still moving toward the closed-form solution.</div>
+          </article>
+          <article class="metric">
+            <div class="metric-name" id="mseName">Current MSE</div>
+            <div class="metric-value" id="mse">0</div>
+            <div class="metric-sub" id="mseGap">gap 0</div>
+          </article>
+          <article class="metric">
+            <div class="metric-name" id="closedName">Closed Form</div>
+            <div class="metric-value" id="closedMse">0</div>
+            <div class="metric-sub" id="closedParams">w 0 · b 0</div>
+          </article>
+          <article class="metric">
+            <div class="metric-name" id="paramsName">GD Parameters</div>
+            <div class="metric-value" id="params">w 0</div>
+            <div class="metric-sub" id="bias">b 0</div>
+          </article>
+          <article class="metric">
+            <div class="metric-name" id="stepName">Gradient Step</div>
+            <div class="metric-value" id="stepSize">0</div>
+            <div class="metric-sub" id="gradNorm">|grad| 0</div>
+          </article>
+        </div>
+
+        <div class="chart-grid">
+          <article class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title" id="fitTitle">Fit</div>
+                <div class="legend" id="fitLegend">
+                  <span class="swatch"><span class="dot data"></span>data</span>
+                  <span class="swatch"><span class="dot"></span>gradient descent</span>
+                  <span class="swatch"><span class="dot closed"></span>closed form</span>
+                </div>
+              </div>
+              <div class="chart-note" id="fitNote"></div>
+            </div>
+            <canvas id="fitCanvas" aria-label="Scatter plot and regression lines"></canvas>
+          </article>
+
+          <article class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title" id="lossTitle">Loss During Training</div>
+                <div class="legend" id="lossLegend">
+                  <span class="swatch"><span class="dot"></span>MSE</span>
+                </div>
+              </div>
+              <div class="chart-note" id="lossNote">log scale</div>
+            </div>
+            <canvas id="lossCanvas" aria-label="Loss over gradient descent iterations"></canvas>
+          </article>
+
+          <article class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title" id="landscapeTitle">Loss Landscape</div>
+                <div class="legend" id="landscapeLegend">
+                  <span class="swatch"><span class="dot"></span>current w</span>
+                  <span class="swatch"><span class="dot closed"></span>optimal w</span>
+                </div>
+              </div>
+              <div class="chart-note" id="landscapeNote"></div>
+            </div>
+            <canvas id="landscapeCanvas" aria-label="Loss as a function of the weight"></canvas>
+          </article>
+
+          <article class="chart">
+            <div class="chart-head">
+              <div>
+                <div class="chart-title" id="gradientTitle">Gradient Magnitude</div>
+                <div class="legend" id="gradientLegend">
+                  <span class="swatch"><span class="dot grad"></span>|grad|</span>
+                  <span class="swatch"><span class="dot"></span>eta*|grad|</span>
+                </div>
+              </div>
+              <div class="chart-note" id="gradientNote"></div>
+            </div>
+            <canvas id="gradientCanvas" aria-label="Gradient magnitude over iterations"></canvas>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const featureNames = window.DIABETES_FEATURE_NAMES;
+    const rawRows = window.DIABETES_RAW;
+    const target = window.DIABETES_TARGET;
+    const n = target.length;
+
+    const colors = {
+      ink: "#13202a",
+      muted: "#627889",
+      line: "#d8e1e8",
+      grid: "#edf2f5",
+      teal: "#2f586e",
+      blue: "#204251",
+      green: "#6b9f3a",
+      orange: "#de7c29",
+      red: "#c83e4d",
+      yellow: "#c49a21",
+      violet: "#6657a5",
+      data: "rgba(104, 113, 123, 0.42)",
+      fill: "rgba(15, 139, 141, 0.10)"
+    };
+
+    const presetSets = {
+      linear: [
+        { id: "lin-perfect", label: "Perfect", feature: "bmi", scaleX: true, etaPower: -1, epochs: 1500 },
+        { id: "lin-vanishing", label: "Vanishing", feature: "bmi", scaleX: true, etaPower: -5, epochs: 1500 },
+        { id: "lin-exploding", label: "Exploding", feature: "bmi", scaleX: true, etaPower: 0.06, epochs: 120 },
+        { id: "lin-oscillating", label: "Oscillating", feature: "bmi", scaleX: true, etaPower: -0.004, epochs: 80 },
+        { id: "lin-unscaled", label: "Unscaled slow", feature: "bmi", scaleX: false, etaPower: -1, epochs: 1500 },
+        { id: "lin-fast", label: "Fast stable", feature: "s5", scaleX: true, etaPower: -0.35, epochs: 420 }
+      ],
+      neural: [
+        { id: "nn-perfect", label: "Perfect", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -0.02, etaPower: -1.45, epochs: 900 },
+        { id: "nn-vanishing", label: "Vanishing", nnActivation: "sigmoid", nnDepth: 10, nnWidth: 5, nnInitPower: -1.3, etaPower: -1.5, epochs: 900 },
+        { id: "nn-exploding", label: "Exploding", nnActivation: "tanh", nnDepth: 5, nnWidth: 9, nnInitPower: 0.45, etaPower: -0.6, epochs: 160 },
+        { id: "nn-relu", label: "ReLU stable", nnActivation: "relu", nnDepth: 4, nnWidth: 10, nnInitPower: 0.12, etaPower: -1.7, epochs: 800 },
+        { id: "nn-deep", label: "Deep tanh", nnActivation: "tanh", nnDepth: 9, nnWidth: 8, nnInitPower: -0.12, etaPower: -1.55, epochs: 1100 },
+        { id: "nn-tiny", label: "Tiny steps", nnActivation: "tanh", nnDepth: 4, nnWidth: 10, nnInitPower: -0.02, etaPower: -4, epochs: 1100 }
+      ]
+    };
+
+    const els = {
+      presets: document.querySelector("#presets"),
+      linearMode: document.querySelector("#linearMode"),
+      neuralMode: document.querySelector("#neuralMode"),
+      linearControls: document.querySelector("#linearControls"),
+      nnControls: document.querySelector("#nnControls"),
+      feature: document.querySelector("#feature"),
+      featureStats: document.querySelector("#featureStats"),
+      scaleX: document.querySelector("#scaleX"),
+      activation: document.querySelector("#activation"),
+      activationLabel: document.querySelector("#activationLabel"),
+      depth: document.querySelector("#depth"),
+      depthLabel: document.querySelector("#depthLabel"),
+      width: document.querySelector("#width"),
+      widthLabel: document.querySelector("#widthLabel"),
+      initPower: document.querySelector("#initPower"),
+      initLabel: document.querySelector("#initLabel"),
+      etaPower: document.querySelector("#etaPower"),
+      etaLabel: document.querySelector("#etaLabel"),
+      epochs: document.querySelector("#epochs"),
+      epochsLabel: document.querySelector("#epochsLabel"),
+      iteration: document.querySelector("#iteration"),
+      iterationLabel: document.querySelector("#iterationLabel"),
+      play: document.querySelector("#play"),
+      restart: document.querySelector("#restart"),
+      diagnosisCard: document.querySelector("#diagnosisCard"),
+      health: document.querySelector("#health"),
+      healthDetail: document.querySelector("#healthDetail"),
+      mseName: document.querySelector("#mseName"),
+      mse: document.querySelector("#mse"),
+      mseGap: document.querySelector("#mseGap"),
+      closedName: document.querySelector("#closedName"),
+      closedMse: document.querySelector("#closedMse"),
+      closedParams: document.querySelector("#closedParams"),
+      paramsName: document.querySelector("#paramsName"),
+      params: document.querySelector("#params"),
+      bias: document.querySelector("#bias"),
+      stepName: document.querySelector("#stepName"),
+      stepSize: document.querySelector("#stepSize"),
+      gradNorm: document.querySelector("#gradNorm"),
+      formulaTitle: document.querySelector("#formulaTitle"),
+      eq1: document.querySelector("#eq1"),
+      eq2: document.querySelector("#eq2"),
+      eq3: document.querySelector("#eq3"),
+      eq4: document.querySelector("#eq4"),
+      eq5: document.querySelector("#eq5"),
+      fitTitle: document.querySelector("#fitTitle"),
+      fitLegend: document.querySelector("#fitLegend"),
+      fitNote: document.querySelector("#fitNote"),
+      lossTitle: document.querySelector("#lossTitle"),
+      lossLegend: document.querySelector("#lossLegend"),
+      lossNote: document.querySelector("#lossNote"),
+      landscapeTitle: document.querySelector("#landscapeTitle"),
+      landscapeLegend: document.querySelector("#landscapeLegend"),
+      landscapeNote: document.querySelector("#landscapeNote"),
+      gradientTitle: document.querySelector("#gradientTitle"),
+      gradientLegend: document.querySelector("#gradientLegend"),
+      gradientNote: document.querySelector("#gradientNote"),
+      fitCanvas: document.querySelector("#fitCanvas"),
+      lossCanvas: document.querySelector("#lossCanvas"),
+      landscapeCanvas: document.querySelector("#landscapeCanvas"),
+      gradientCanvas: document.querySelector("#gradientCanvas")
+    };
+
+    let state = {
+      mode: "linear",
+      activePreset: "lin-perfect",
+      feature: "bmi",
+      scaleX: true,
+      nnActivation: "tanh",
+      nnDepth: 3,
+      nnWidth: 10,
+      nnInitPower: -0.02,
+      etaPower: -1,
+      epochs: 1500,
+      iteration: 1500
+    };
+
+    let computed = null;
+    let animationFrame = null;
+    let lastTick = 0;
+
+    function mean(values) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function variance(values, center) {
+      return values.reduce((sum, value) => sum + (value - center) ** 2, 0) / values.length;
+    }
+
+    function formatNumber(value, digits = 3) {
+      if (!Number.isFinite(value)) return "inf";
+      const abs = Math.abs(value);
+      if (abs !== 0 && (abs >= 100000 || abs < 0.001)) return value.toExponential(2);
+      return value.toLocaleString(undefined, {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: abs < 10 ? Math.min(2, digits) : 0
+      });
+    }
+
+    function formatEta(value) {
+      if (value < 0.001 || value >= 1) return value.toExponential(2);
+      return value.toFixed(value < 0.01 ? 5 : 4);
+    }
+
+    function scaledNotebookData() {
+      const columns = featureNames.map((_, col) => rawRows.map(row => row[col]));
+      const stats = columns.map(column => {
+        const mu = mean(column);
+        const sigma = Math.sqrt(variance(column, mu));
+        return { mu, sigma };
+      });
+      return rawRows.map(row => row.map((value, col) => (value - stats[col].mu) / (stats[col].sigma * Math.sqrt(n))));
+    }
+
+    const notebookRows = scaledNotebookData();
+
+    function standardize(values) {
+      const mu = mean(values);
+      const sigma = Math.sqrt(variance(values, mu));
+      return values.map(value => (value - mu) / sigma);
+    }
+
+    function prepareFeature(feature, scaleX) {
+      const col = featureNames.indexOf(feature);
+      const xBase = notebookRows.map(row => row[col]);
+      const x = scaleX ? standardize(xBase) : xBase.slice();
+      const mu = mean(x);
+      const sigma = Math.sqrt(variance(x, mu));
+      return { x, mu, sigma };
+    }
+
+    function predict(x, w, b) {
+      return w * x + b;
+    }
+
+    function computeLoss(x, y, w, b) {
+      let sum = 0;
+      for (let i = 0; i < x.length; i += 1) {
+        const error = predict(x[i], w, b) - y[i];
+        sum += error * error;
+      }
+      return sum / x.length;
+    }
+
+    function computeGradients(x, y, w, b) {
+      let dw = 0;
+      let db = 0;
+      for (let i = 0; i < x.length; i += 1) {
+        const error = predict(x[i], w, b) - y[i];
+        dw += x[i] * error;
+        db += error;
+      }
+      return [(2 / x.length) * dw, (2 / x.length) * db];
+    }
+
+    function closedFormSolution(x, y) {
+      const mx = mean(x);
+      const my = mean(y);
+      let numerator = 0;
+      let denominator = 0;
+      for (let i = 0; i < x.length; i += 1) {
+        numerator += (x[i] - mx) * (y[i] - my);
+        denominator += (x[i] - mx) ** 2;
+      }
+      const w = denominator === 0 ? 0 : numerator / denominator;
+      const b = my - w * mx;
+      return { w, b, mse: computeLoss(x, y, w, b) };
+    }
+
+    function gradientDescent(x, y, eta, epochs) {
+      let w = 0;
+      let b = 0;
+      let [dw, db] = computeGradients(x, y, w, b);
+      const states = [{ w, b, dw, db, loss: computeLoss(x, y, w, b), step: eta * Math.hypot(dw, db) }];
+      let exploded = false;
+      let stoppedAt = epochs;
+
+      for (let t = 1; t <= epochs; t += 1) {
+        [dw, db] = computeGradients(x, y, w, b);
+        w -= eta * dw;
+        b -= eta * db;
+        const loss = computeLoss(x, y, w, b);
+        const nextGrad = computeGradients(x, y, w, b);
+        const step = eta * Math.hypot(nextGrad[0], nextGrad[1]);
+
+        if (!Number.isFinite(loss) || Math.abs(w) > 1e14 || Math.abs(b) > 1e14 || loss > 1e18) {
+          exploded = true;
+          stoppedAt = t;
+          states.push({ w, b, dw: nextGrad[0], db: nextGrad[1], loss, step });
+          break;
+        }
+
+        states.push({ w, b, dw: nextGrad[0], db: nextGrad[1], loss, step });
+      }
+
+      return { states, exploded, stoppedAt };
+    }
+
+    const neuralX = Array.from({ length: 54 }, (_, i) => -1 + (2 * i) / 53);
+    const neuralY = neuralX.map(x => 0.58 * Math.sin(1.65 * Math.PI * x) + 0.28 * x + 0.12 * Math.cos(3.4 * Math.PI * x));
+    const neuralGrid = Array.from({ length: 120 }, (_, i) => -1.08 + (2.16 * i) / 119);
+    const neuralTruth = neuralGrid.map(x => 0.58 * Math.sin(1.65 * Math.PI * x) + 0.28 * x + 0.12 * Math.cos(3.4 * Math.PI * x));
+
+    function makeRng(seed) {
+      let value = seed >>> 0;
+      return () => {
+        value = (1664525 * value + 1013904223) >>> 0;
+        return value / 4294967296;
+      };
+    }
+
+    function randomNormal(rng) {
+      const u1 = Math.max(rng(), 1e-12);
+      const u2 = rng();
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    }
+
+    function activationValue(z, activation) {
+      if (activation === "sigmoid") return 1 / (1 + Math.exp(-Math.max(-60, Math.min(60, z))));
+      if (activation === "relu") return Math.max(0, z);
+      return Math.tanh(z);
+    }
+
+    function activationDerivative(z, a, activation) {
+      if (activation === "sigmoid") return a * (1 - a);
+      if (activation === "relu") return z > 0 ? 1 : 0;
+      return 1 - a * a;
+    }
+
+    function createNetwork(depth, width, activation, initScale) {
+      const sizes = [1, ...Array.from({ length: depth }, () => width), 1];
+      const seed = 713 + depth * 97 + width * 29 + Math.round(initScale * 1000) + activation.length * 131;
+      const rng = makeRng(seed);
+      const weights = [];
+      const biases = [];
+
+      for (let layer = 0; layer < sizes.length - 1; layer += 1) {
+        const fanIn = sizes[layer];
+        const fanOut = sizes[layer + 1];
+        const base = activation === "relu" ? Math.sqrt(2 / fanIn) : Math.sqrt(1 / fanIn);
+        const layerWeights = [];
+        const layerBiases = [];
+        for (let i = 0; i < fanIn; i += 1) {
+          const row = [];
+          for (let j = 0; j < fanOut; j += 1) row.push(randomNormal(rng) * initScale * base);
+          layerWeights.push(row);
+        }
+        for (let j = 0; j < fanOut; j += 1) layerBiases.push(0);
+        weights.push(layerWeights);
+        biases.push(layerBiases);
+      }
+
+      return { sizes, weights, biases, activation };
+    }
+
+    function forwardNetwork(net, x) {
+      const activations = [[x]];
+      const zs = [];
+      let current = [x];
+
+      for (let layer = 0; layer < net.weights.length; layer += 1) {
+        const next = [];
+        const zLayer = [];
+        const outputLayer = layer === net.weights.length - 1;
+        for (let j = 0; j < net.biases[layer].length; j += 1) {
+          let z = net.biases[layer][j];
+          for (let i = 0; i < current.length; i += 1) z += current[i] * net.weights[layer][i][j];
+          zLayer.push(z);
+          next.push(outputLayer ? z : activationValue(z, net.activation));
+        }
+        zs.push(zLayer);
+        activations.push(next);
+        current = next;
+      }
+
+      return { output: current[0], activations, zs };
+    }
+
+    function emptyGradients(net) {
+      return {
+        weights: net.weights.map(layer => layer.map(row => row.map(() => 0))),
+        biases: net.biases.map(layer => layer.map(() => 0))
+      };
+    }
+
+    function networkBatch(net, xs, ys) {
+      const grads = emptyGradients(net);
+      let loss = 0;
+
+      for (let sample = 0; sample < xs.length; sample += 1) {
+        const pass = forwardNetwork(net, xs[sample]);
+        const error = pass.output - ys[sample];
+        loss += error * error;
+        let delta = [2 * error / xs.length];
+
+        for (let layer = net.weights.length - 1; layer >= 0; layer -= 1) {
+          const prevActivations = pass.activations[layer];
+          for (let i = 0; i < prevActivations.length; i += 1) {
+            for (let j = 0; j < delta.length; j += 1) {
+              grads.weights[layer][i][j] += prevActivations[i] * delta[j];
+            }
+          }
+          for (let j = 0; j < delta.length; j += 1) grads.biases[layer][j] += delta[j];
+
+          if (layer > 0) {
+            const prevDelta = [];
+            for (let i = 0; i < net.sizes[layer]; i += 1) {
+              let backprop = 0;
+              for (let j = 0; j < delta.length; j += 1) backprop += net.weights[layer][i][j] * delta[j];
+              prevDelta.push(backprop * activationDerivative(pass.zs[layer - 1][i], pass.activations[layer][i], net.activation));
+            }
+            delta = prevDelta;
+          }
+        }
+      }
+
+      loss /= xs.length;
+      const gradNorms = grads.weights.map((layer, idx) => {
+        let sum = 0;
+        for (let i = 0; i < layer.length; i += 1) {
+          for (let j = 0; j < layer[i].length; j += 1) sum += layer[i][j] * layer[i][j];
+        }
+        for (const value of grads.biases[idx]) sum += value * value;
+        return Math.sqrt(sum);
+      });
+      const finiteNorms = gradNorms.filter(value => Number.isFinite(value) && value > 0);
+      const maxGrad = finiteNorms.length ? Math.max(...finiteNorms) : 0;
+      const minGrad = finiteNorms.length ? Math.min(...finiteNorms) : 0;
+      const inputOutputRatio = gradNorms.length > 1 ? gradNorms[0] / Math.max(gradNorms[gradNorms.length - 1], 1e-18) : 1;
+
+      return { loss, grads, gradNorms, maxGrad, minGrad, inputOutputRatio };
+    }
+
+    function applyNetworkGradients(net, grads, eta) {
+      for (let layer = 0; layer < net.weights.length; layer += 1) {
+        for (let i = 0; i < net.weights[layer].length; i += 1) {
+          for (let j = 0; j < net.weights[layer][i].length; j += 1) {
+            net.weights[layer][i][j] -= eta * grads.weights[layer][i][j];
+          }
+        }
+        for (let j = 0; j < net.biases[layer].length; j += 1) net.biases[layer][j] -= eta * grads.biases[layer][j];
+      }
+    }
+
+    function predictNetworkCurve(net) {
+      return neuralGrid.map(x => forwardNetwork(net, x).output);
+    }
+
+    function networkState(epoch, batch, eta, net) {
+      return {
+        epoch,
+        loss: batch.loss,
+        gradNorms: batch.gradNorms.slice(),
+        maxGrad: batch.maxGrad,
+        minGrad: batch.minGrad,
+        inputOutputRatio: batch.inputOutputRatio,
+        step: eta * batch.maxGrad,
+        curve: predictNetworkCurve(net)
+      };
+    }
+
+    function trainNetwork(config) {
+      const net = createNetwork(config.depth, config.width, config.activation, config.initScale);
+      const states = [];
+      let exploded = false;
+      let stoppedAt = config.epochs;
+      let batch = networkBatch(net, neuralX, neuralY);
+      states.push(networkState(0, batch, config.eta, net));
+
+      for (let epoch = 1; epoch <= config.epochs; epoch += 1) {
+        applyNetworkGradients(net, batch.grads, config.eta);
+        batch = networkBatch(net, neuralX, neuralY);
+
+        if (!Number.isFinite(batch.loss) || !Number.isFinite(batch.maxGrad) || batch.loss > 1e8 || batch.maxGrad > 1e8) {
+          exploded = true;
+          stoppedAt = epoch;
+          states.push(networkState(epoch, batch, config.eta, net));
+          break;
+        }
+
+        states.push(networkState(epoch, batch, config.eta, net));
+      }
+
+      const bestLoss = Math.min(...states.map(item => Number.isFinite(item.loss) ? item.loss : Infinity));
+      return {
+        states,
+        exploded,
+        stoppedAt,
+        bestLoss,
+        depth: config.depth,
+        width: config.width,
+        activation: config.activation,
+        initScale: config.initScale,
+        layerCount: config.depth + 1
+      };
+    }
+
+    function diagnose(run, closed, eta) {
+      const states = run.states;
+      const first = states[0];
+      const final = states[states.length - 1];
+      const gap = final.loss - closed.mse;
+      const possibleProgress = Math.max(first.loss - closed.mse, 1e-9);
+      const progress = (first.loss - final.loss) / possibleProgress;
+      const gradNorm = Math.hypot(final.dw, final.db);
+      const step = eta * gradNorm;
+      const recent = states.slice(Math.max(1, states.length - 40)).map(item => item.loss);
+      let reversals = 0;
+      for (let i = 2; i < recent.length; i += 1) {
+        const a = recent[i - 1] - recent[i - 2];
+        const b = recent[i] - recent[i - 1];
+        if (a * b < 0) reversals += 1;
+      }
+      const path = states.slice(Math.max(1, states.length - 80));
+      let crossings = 0;
+      for (let i = 1; i < path.length; i += 1) {
+        const prevW = path[i - 1].w - closed.w;
+        const nextW = path[i].w - closed.w;
+        const prevB = path[i - 1].b - closed.b;
+        const nextB = path[i].b - closed.b;
+        if (prevW * nextW < 0) crossings += 1;
+        if (prevB * nextB < 0) crossings += 1;
+      }
+
+      if (run.exploded || final.loss > first.loss * 25 || !Number.isFinite(final.loss)) {
+        return {
+          key: "exploding",
+          label: "Exploding",
+          detail: `Loss blew up around iteration ${run.stoppedAt}. eta is larger than this landscape can absorb.`
+        };
+      }
+
+      if (gap <= Math.max(1e-3, closed.mse * 0.0005)) {
+        return {
+          key: "perfect",
+          label: "Perfect",
+          detail: "GD has reached the closed-form line for this feature."
+        };
+      }
+
+      if ((reversals > 12 || crossings > 16) && gap > Math.max(1, closed.mse * 0.002)) {
+        return {
+          key: "oscillating",
+          label: "Oscillating",
+          detail: "The step is stable, but it keeps overshooting the valley."
+        };
+      }
+
+      if (progress < 0.2 || (step < 1e-3 && gap > 10)) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Updates are too small to close the gap in the chosen epochs."
+        };
+      }
+
+      return {
+        key: "learning",
+        label: "Learning",
+        detail: "Updates are still moving toward the closed-form solution."
+      };
+    }
+
+    function diagnoseNeural(run) {
+      const states = run.states;
+      const first = states[0];
+      const final = states[states.length - 1];
+      const improvement = first.loss - final.loss;
+      const relativeImprovement = improvement / Math.max(first.loss, 1e-12);
+      const layerRatio = final.inputOutputRatio;
+      const spread = final.minGrad > 0 ? final.maxGrad / final.minGrad : Infinity;
+
+      if (run.exploded || !Number.isFinite(final.loss) || !Number.isFinite(final.maxGrad) || final.loss > 1e6 || final.maxGrad > 1e5) {
+        return {
+          key: "exploding",
+          label: "Exploding",
+          detail: `Gradients blew up around epoch ${run.stoppedAt}; the update cannot stay inside the valley.`
+        };
+      }
+
+      if (final.loss < 0.018 && spread < 1e5) {
+        return {
+          key: "perfect",
+          label: "Perfect",
+          detail: "The network fits the curve and gradients still flow through the layers."
+        };
+      }
+
+      if (run.depth >= 6 && (Math.abs(layerRatio) < 1e-4 || spread > 1e7 || relativeImprovement < 0.08)) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Early layers receive tiny gradients compared with the output layer."
+        };
+      }
+
+      if (relativeImprovement < 0.04 || final.step < 1e-6) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Updates are too small to change the function in the chosen epochs."
+        };
+      }
+
+      return {
+        key: "learning",
+        label: "Learning",
+        detail: "The network is improving, but it has not fully settled yet."
+      };
+    }
+
+    function compute() {
+      const eta = 10 ** Number(state.etaPower);
+      let run;
+      if (state.mode === "neural") {
+        const config = {
+          activation: state.nnActivation,
+          depth: Number(state.nnDepth),
+          width: Number(state.nnWidth),
+          initScale: 10 ** Number(state.nnInitPower),
+          eta,
+          epochs: Number(state.epochs)
+        };
+        run = trainNetwork(config);
+        const diagnosis = diagnoseNeural(run);
+        computed = { mode: "neural", eta, run, diagnosis, config };
+      } else {
+        const prepared = prepareFeature(state.feature, state.scaleX);
+        const closed = closedFormSolution(prepared.x, target);
+        run = gradientDescent(prepared.x, target, eta, Number(state.epochs));
+        const diagnosis = diagnose(run, closed, eta);
+        computed = { mode: "linear", ...prepared, eta, closed, run, diagnosis };
+      }
+
+      const maxIteration = run.states.length - 1;
+      state.iteration = Math.min(Number(state.iteration), maxIteration);
+      els.iteration.max = String(maxIteration);
+      els.iteration.value = String(state.iteration);
+    }
+
+    function setPreset(id) {
+      const preset = presetSets[state.mode].find(item => item.id === id);
+      if (!preset) return;
+      state = {
+        ...state,
+        activePreset: id,
+        feature: preset.feature ?? state.feature,
+        scaleX: preset.scaleX ?? state.scaleX,
+        nnActivation: preset.nnActivation ?? state.nnActivation,
+        nnDepth: preset.nnDepth ?? state.nnDepth,
+        nnWidth: preset.nnWidth ?? state.nnWidth,
+        nnInitPower: preset.nnInitPower ?? state.nnInitPower,
+        etaPower: preset.etaPower,
+        epochs: preset.epochs,
+        iteration: preset.epochs
+      };
+      stopAnimation();
+      syncControls();
+      updateAll();
+    }
+
+    function renderPresetButtons() {
+      els.presets.innerHTML = "";
+      presetSets[state.mode].forEach(preset => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "preset";
+        button.dataset.preset = preset.id;
+        button.textContent = preset.label;
+        button.addEventListener("click", () => setPreset(preset.id));
+        els.presets.appendChild(button);
+      });
+    }
+
+    function setMode(mode) {
+      if (state.mode === mode) return;
+      stopAnimation();
+      state.mode = mode;
+      renderPresetButtons();
+      setPreset(presetSets[mode][0].id);
+    }
+
+    function syncControls() {
+      els.linearMode.classList.toggle("active", state.mode === "linear");
+      els.neuralMode.classList.toggle("active", state.mode === "neural");
+      els.linearControls.classList.toggle("hidden", state.mode !== "linear");
+      els.nnControls.classList.toggle("hidden", state.mode !== "neural");
+      els.feature.value = state.feature;
+      els.scaleX.checked = state.scaleX;
+      els.activation.value = state.nnActivation;
+      els.activationLabel.textContent = state.nnActivation;
+      els.depth.value = String(state.nnDepth);
+      els.depthLabel.textContent = String(state.nnDepth);
+      els.width.value = String(state.nnWidth);
+      els.widthLabel.textContent = String(state.nnWidth);
+      els.initPower.value = String(state.nnInitPower);
+      els.initLabel.textContent = formatNumber(10 ** Number(state.nnInitPower), 3);
+      const epochMax = state.mode === "neural" ? 1600 : 5000;
+      els.epochs.max = String(epochMax);
+      els.epochs.step = state.mode === "neural" ? "10" : "5";
+      if (Number(state.epochs) > epochMax) state.epochs = epochMax;
+      els.etaPower.value = String(state.etaPower);
+      els.epochs.value = String(state.epochs);
+      els.iteration.value = String(state.iteration);
+      els.etaLabel.textContent = formatEta(10 ** Number(state.etaPower));
+      els.epochsLabel.textContent = String(state.epochs);
+      els.iterationLabel.textContent = `${state.iteration} / ${els.iteration.max || state.epochs}`;
+      [...els.presets.children].forEach(button => {
+        button.classList.toggle("active", button.dataset.preset === state.activePreset);
+      });
+      updateTextSystem();
+    }
+
+    function updateAll() {
+      compute();
+      syncControls();
+      updateMetrics();
+      drawAll();
+    }
+
+    function currentState() {
+      return computed.run.states[Math.min(state.iteration, computed.run.states.length - 1)];
+    }
+
+    function updateTextSystem() {
+      if (state.mode === "neural") {
+        els.formulaTitle.textContent = "Backprop Equations";
+        els.eq1.textContent = "h_l = activation(W_l*h_{l-1} + b_l)";
+        els.eq2.textContent = "y_hat = W_out*h_last + b_out";
+        els.eq3.textContent = "L = mean((y_hat - y)^2)";
+        els.eq4.textContent = "dW_l = backprop(dL/dy_hat)";
+        els.eq5.textContent = "W_l,b_l = W_l,b_l - eta*(dW_l,db_l)";
+        els.fitTitle.textContent = "Function Fit";
+        els.fitLegend.innerHTML = '<span class="swatch"><span class="dot data"></span>training data</span><span class="swatch"><span class="dot true"></span>true curve</span><span class="swatch"><span class="dot"></span>network</span>';
+        els.lossTitle.textContent = "Loss During Training";
+        els.lossLegend.innerHTML = '<span class="swatch"><span class="dot"></span>MSE</span>';
+        els.lossNote.textContent = "log scale";
+        els.landscapeTitle.textContent = "Layer Gradient Flow";
+        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot layer"></span>per-layer |grad|</span><span class="swatch"><span class="dot"></span>selected epoch</span>';
+        els.gradientTitle.textContent = "Network Diagram";
+        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot layer"></span>layers</span><span class="swatch"><span class="dot grad"></span>gradient strength</span>';
+      } else {
+        els.formulaTitle.textContent = "Notebook Equations";
+        els.eq1.textContent = "y_hat = w*x + b";
+        els.eq2.textContent = "L = mean((y_hat - y)^2)";
+        els.eq3.textContent = "dw = 2/n * sum(x*(y_hat-y))";
+        els.eq4.textContent = "db = 2/n * sum(y_hat-y)";
+        els.eq5.textContent = "w,b = w,b - eta*(dw,db)";
+        els.fitTitle.textContent = "Fit";
+        els.fitLegend.innerHTML = '<span class="swatch"><span class="dot data"></span>data</span><span class="swatch"><span class="dot"></span>gradient descent</span><span class="swatch"><span class="dot closed"></span>closed form</span>';
+        els.lossTitle.textContent = "Loss During Training";
+        els.lossLegend.innerHTML = '<span class="swatch"><span class="dot"></span>MSE</span>';
+        els.lossNote.textContent = "log scale";
+        els.landscapeTitle.textContent = "Loss Landscape";
+        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot"></span>current w</span><span class="swatch"><span class="dot closed"></span>optimal w</span>';
+        els.gradientTitle.textContent = "Gradient Magnitude";
+        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot grad"></span>|grad|</span><span class="swatch"><span class="dot"></span>eta*|grad|</span>';
+      }
+    }
+
+    function updateMetrics() {
+      const item = currentState();
+      const { diagnosis, eta } = computed;
+
+      els.diagnosisCard.dataset.state = diagnosis.key;
+      els.health.textContent = diagnosis.label;
+      els.healthDetail.textContent = diagnosis.detail;
+
+      if (computed.mode === "neural") {
+        const final = computed.run.states[computed.run.states.length - 1];
+        const first = computed.run.states[0];
+        const inputGrad = item.gradNorms[0] || 0;
+        const outputGrad = item.gradNorms[item.gradNorms.length - 1] || 0;
+        const ratio = inputGrad / Math.max(outputGrad, 1e-18);
+
+        els.mseName.textContent = "Network MSE";
+        els.closedName.textContent = "Best MSE";
+        els.paramsName.textContent = "Architecture";
+        els.stepName.textContent = "Gradient Flow";
+        els.mse.textContent = formatNumber(item.loss, 5);
+        els.mseGap.textContent = `start ${formatNumber(first.loss, 4)} · final ${formatNumber(final.loss, 4)}`;
+        els.closedMse.textContent = formatNumber(computed.run.bestLoss, 5);
+        els.closedParams.textContent = `${computed.run.activation} · init ${formatNumber(computed.run.initScale, 3)}`;
+        els.params.textContent = `${computed.run.depth} x ${computed.run.width}`;
+        els.bias.textContent = `${computed.run.depth} hidden layers · ${computed.run.layerCount} trained layers`;
+        els.stepSize.textContent = formatNumber(item.maxGrad, 4);
+        els.gradNorm.textContent = `input/output ${formatNumber(ratio, 3)}`;
+        els.featureStats.textContent = "";
+        els.fitNote.textContent = `epoch ${state.iteration}`;
+        els.landscapeNote.textContent = `layer spread ${formatNumber(item.maxGrad / Math.max(item.minGrad, 1e-18), 2)}`;
+        els.gradientNote.textContent = `eta ${formatEta(eta)}`;
+      } else {
+        const { closed, x } = computed;
+        const gap = item.loss - closed.mse;
+        const gradNorm = Math.hypot(item.dw, item.db);
+        const step = eta * gradNorm;
+        const xMin = Math.min(...x);
+        const xMax = Math.max(...x);
+
+        els.mseName.textContent = "Current MSE";
+        els.closedName.textContent = "Closed Form";
+        els.paramsName.textContent = "GD Parameters";
+        els.stepName.textContent = "Gradient Step";
+        els.mse.textContent = formatNumber(item.loss, 4);
+        els.mseGap.textContent = `gap ${formatNumber(gap, 4)}`;
+        els.closedMse.textContent = formatNumber(closed.mse, 4);
+        els.closedParams.textContent = `w ${formatNumber(closed.w, 4)} · b ${formatNumber(closed.b, 4)}`;
+        els.params.textContent = `w ${formatNumber(item.w, 4)}`;
+        els.bias.textContent = `b ${formatNumber(item.b, 4)}`;
+        els.stepSize.textContent = formatNumber(step, 4);
+        els.gradNorm.textContent = `|grad| ${formatNumber(gradNorm, 4)}`;
+        els.featureStats.textContent = `[${formatNumber(xMin, 2)}, ${formatNumber(xMax, 2)}]`;
+        els.fitNote.textContent = `iteration ${state.iteration}`;
+        els.landscapeNote.textContent = `b fixed at ${formatNumber(closed.b, 2)}`;
+        els.gradientNote.textContent = `eta ${formatEta(eta)}`;
+      }
+    }
+
+    function canvasSetup(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      const width = Math.max(320, rect.width);
+      const height = Math.max(250, rect.height);
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      return { ctx, width, height };
+    }
+
+    function makePlot(canvas, xDomain, yDomain, xLabel, yLabel) {
+      const setup = canvasSetup(canvas);
+      const { ctx, width, height } = setup;
+      const margin = { top: 18, right: 18, bottom: 42, left: 58 };
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+      const xSpan = xDomain[1] - xDomain[0] || 1;
+      const ySpan = yDomain[1] - yDomain[0] || 1;
+      const xMap = value => margin.left + ((value - xDomain[0]) / xSpan) * innerW;
+      const yMap = value => margin.top + innerH - ((value - yDomain[0]) / ySpan) * innerH;
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      ctx.font = "11px Inter, sans-serif";
+      ctx.fillStyle = colors.muted;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = margin.top + (innerH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(margin.left + innerW, y);
+        ctx.stroke();
+        const value = yDomain[1] - (ySpan * i) / 4;
+        ctx.fillText(formatNumber(value, 2), margin.left - 8, y);
+      }
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      for (let i = 0; i <= 4; i += 1) {
+        const x = margin.left + (innerW * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(x, margin.top);
+        ctx.lineTo(x, margin.top + innerH);
+        ctx.stroke();
+        const value = xDomain[0] + (xSpan * i) / 4;
+        ctx.fillText(formatNumber(value, 2), x, margin.top + innerH + 8);
+      }
+
+      ctx.strokeStyle = colors.line;
+      ctx.strokeRect(margin.left, margin.top, innerW, innerH);
+      ctx.fillStyle = colors.muted;
+      ctx.textAlign = "center";
+      ctx.fillText(xLabel, margin.left + innerW / 2, height - 16);
+      ctx.save();
+      ctx.translate(15, margin.top + innerH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(yLabel, 0, 0);
+      ctx.restore();
+
+      return { ...setup, margin, innerW, innerH, xMap, yMap };
+    }
+
+    function paddedDomain(values, pad = 0.07) {
+      const finite = values.filter(Number.isFinite);
+      let min = Math.min(...finite);
+      let max = Math.max(...finite);
+      if (min === max) {
+        min -= 1;
+        max += 1;
+      }
+      const span = max - min;
+      return [min - span * pad, max + span * pad];
+    }
+
+    function drawLine(ctx, points, xMap, yMap, color, width = 2, dash = []) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      points.forEach((point, i) => {
+        const x = xMap(point[0]);
+        const y = yMap(point[1]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawFit() {
+      if (computed.mode === "neural") {
+        drawNeuralFit();
+        return;
+      }
+      const { x, closed } = computed;
+      const item = currentState();
+      const xDomain = paddedDomain(x, 0.09);
+      const yValues = target.concat(x.map(value => predict(value, item.w, item.b)), x.map(value => predict(value, closed.w, closed.b)));
+      const yDomain = paddedDomain(yValues, 0.08);
+      const plot = makePlot(els.fitCanvas, xDomain, yDomain, state.feature, "target");
+      const { ctx, xMap, yMap } = plot;
+
+      ctx.fillStyle = colors.data;
+      for (let i = 0; i < x.length; i += 1) {
+        ctx.beginPath();
+        ctx.arc(xMap(x[i]), yMap(target[i]), 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const lineX = [xDomain[0], xDomain[1]];
+      drawLine(ctx, lineX.map(value => [value, predict(value, closed.w, closed.b)]), xMap, yMap, colors.ink, 2.2, [8, 6]);
+      drawLine(ctx, lineX.map(value => [value, predict(value, item.w, item.b)]), xMap, yMap, statusColor(), 3);
+    }
+
+    function drawNeuralFit() {
+      const item = currentState();
+      const curve = item.curve || [];
+      const yDomain = paddedDomain(neuralY.concat(neuralTruth, curve.filter(Number.isFinite)), 0.12);
+      const plot = makePlot(els.fitCanvas, [-1.12, 1.12], yDomain, "x", "y");
+      const { ctx, xMap, yMap } = plot;
+
+      ctx.fillStyle = colors.data;
+      for (let i = 0; i < neuralX.length; i += 1) {
+        ctx.beginPath();
+        ctx.arc(xMap(neuralX[i]), yMap(neuralY[i]), 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      drawLine(ctx, neuralGrid.map((x, i) => [x, neuralTruth[i]]), xMap, yMap, colors.orange, 2.2, [7, 5]);
+      if (curve.length) drawLine(ctx, neuralGrid.map((x, i) => [x, curve[i]]).filter(point => Number.isFinite(point[1])), xMap, yMap, statusColor(), 3);
+    }
+
+    function finiteLosses() {
+      return computed.run.states
+        .map((item, index) => ({ index, loss: item.loss }))
+        .filter(item => Number.isFinite(item.loss) && item.loss > 0);
+    }
+
+    function drawLoss() {
+      const losses = finiteLosses();
+      const logLosses = losses.map(item => ({ index: item.index, loss: Math.log10(Math.max(item.loss, 1e-9)) }));
+      const xDomain = [0, Math.max(Number(state.epochs), losses[losses.length - 1]?.index || 1)];
+      const yDomain = paddedDomain(logLosses.map(item => item.loss), 0.12);
+      const plot = makePlot(els.lossCanvas, xDomain, yDomain, "iteration", "log10(MSE)");
+      const points = logLosses.map(item => [item.index, item.loss]);
+      if (points.length > 1) drawLine(plot.ctx, points, plot.xMap, plot.yMap, statusColor(), 2.8);
+
+      const selected = currentState();
+      if (Number.isFinite(selected.loss) && selected.loss > 0) {
+        plot.ctx.fillStyle = colors.ink;
+        plot.ctx.beginPath();
+        plot.ctx.arc(plot.xMap(state.iteration), plot.yMap(Math.log10(selected.loss)), 4.5, 0, Math.PI * 2);
+        plot.ctx.fill();
+      }
+    }
+
+    function drawLandscape() {
+      if (computed.mode === "neural") {
+        drawNeuralGradientFlow();
+        return;
+      }
+      const { x, closed } = computed;
+      const item = currentState();
+      const distance = Number.isFinite(item.w) ? Math.abs(item.w - closed.w) : Math.abs(closed.w);
+      const span = Math.max(35, Math.abs(closed.w) * 0.85, Math.min(distance * 1.2, 600));
+      const xDomain = [closed.w - span, closed.w + span];
+      const grid = [];
+      for (let i = 0; i < 160; i += 1) {
+        const w = xDomain[0] + ((xDomain[1] - xDomain[0]) * i) / 159;
+        grid.push([w, computeLoss(x, target, w, closed.b)]);
+      }
+      const yDomain = paddedDomain(grid.map(point => point[1]).concat([closed.mse]), 0.12);
+      const plot = makePlot(els.landscapeCanvas, xDomain, yDomain, "w", "MSE");
+      drawLine(plot.ctx, grid, plot.xMap, plot.yMap, colors.ink, 2);
+
+      const currentW = Number.isFinite(item.w) ? Math.max(xDomain[0], Math.min(xDomain[1], item.w)) : xDomain[item.w < 0 ? 0 : 1];
+      const currentLoss = computeLoss(x, target, currentW, closed.b);
+      plot.ctx.fillStyle = statusColor();
+      plot.ctx.beginPath();
+      plot.ctx.arc(plot.xMap(currentW), plot.yMap(currentLoss), 5, 0, Math.PI * 2);
+      plot.ctx.fill();
+
+      plot.ctx.strokeStyle = colors.ink;
+      plot.ctx.setLineDash([7, 5]);
+      plot.ctx.beginPath();
+      plot.ctx.moveTo(plot.xMap(closed.w), plot.yMap(yDomain[0]));
+      plot.ctx.lineTo(plot.xMap(closed.w), plot.yMap(yDomain[1]));
+      plot.ctx.stroke();
+      plot.ctx.setLineDash([]);
+    }
+
+    function drawNeuralGradientFlow() {
+      const item = currentState();
+      const grads = item.gradNorms.map(value => Math.max(value, 1e-18));
+      const logGrads = grads.map(value => Math.log10(value));
+      const yDomain = paddedDomain(logGrads, 0.18);
+      const plot = makePlot(els.landscapeCanvas, [0, Math.max(1, grads.length - 1)], yDomain, "layer", "log10 |grad|");
+      const { ctx, xMap, yMap } = plot;
+      const points = logGrads.map((value, idx) => [idx, value]);
+
+      if (points.length > 1) drawLine(ctx, points, xMap, yMap, statusColor(), 3);
+
+      points.forEach((point, idx) => {
+        const x = xMap(point[0]);
+        const y = yMap(point[1]);
+        ctx.fillStyle = idx === 0 ? colors.violet : idx === points.length - 1 ? colors.orange : colors.blue;
+        ctx.beginPath();
+        ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = colors.muted;
+        ctx.font = "11px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(idx === points.length - 1 ? "Out" : `L${idx + 1}`, x, y + 9);
+      });
+    }
+
+    function drawGradient() {
+      if (computed.mode === "neural") {
+        drawNetworkDiagram();
+        return;
+      }
+      const eta = computed.eta;
+      const series = computed.run.states
+        .map((item, index) => ({
+          index,
+          grad: Math.hypot(item.dw, item.db),
+          step: eta * Math.hypot(item.dw, item.db)
+        }))
+        .filter(item => Number.isFinite(item.grad) && item.grad > 0 && Number.isFinite(item.step) && item.step > 0);
+      const logGrad = series.map(item => [item.index, Math.log10(item.grad)]);
+      const logStep = series.map(item => [item.index, Math.log10(item.step)]);
+      const allY = logGrad.concat(logStep).map(point => point[1]);
+      const xDomain = [0, Math.max(Number(state.epochs), series[series.length - 1]?.index || 1)];
+      const yDomain = paddedDomain(allY, 0.14);
+      const plot = makePlot(els.gradientCanvas, xDomain, yDomain, "iteration", "log10 magnitude");
+      if (logGrad.length > 1) drawLine(plot.ctx, logGrad, plot.xMap, plot.yMap, colors.violet, 2.3);
+      if (logStep.length > 1) drawLine(plot.ctx, logStep, plot.xMap, plot.yMap, statusColor(), 2.3);
+
+      const item = currentState();
+      const grad = Math.hypot(item.dw, item.db);
+      const step = eta * grad;
+      if (Number.isFinite(grad) && grad > 0) {
+        plot.ctx.fillStyle = colors.violet;
+        plot.ctx.beginPath();
+        plot.ctx.arc(plot.xMap(state.iteration), plot.yMap(Math.log10(grad)), 4, 0, Math.PI * 2);
+        plot.ctx.fill();
+      }
+      if (Number.isFinite(step) && step > 0) {
+        plot.ctx.fillStyle = statusColor();
+        plot.ctx.beginPath();
+        plot.ctx.arc(plot.xMap(state.iteration), plot.yMap(Math.log10(step)), 4, 0, Math.PI * 2);
+        plot.ctx.fill();
+      }
+    }
+
+    function drawNetworkDiagram() {
+      const item = currentState();
+      const setup = canvasSetup(els.gradientCanvas);
+      const { ctx, width, height } = setup;
+      const margin = { top: 34, right: 30, bottom: 34, left: 30 };
+      const layerTotal = computed.run.depth + 2;
+      const layerXs = Array.from({ length: layerTotal }, (_, idx) => {
+        if (layerTotal === 1) return width / 2;
+        return margin.left + ((width - margin.left - margin.right) * idx) / (layerTotal - 1);
+      });
+      const maxVisible = Math.min(computed.run.width, 7);
+      const gradLogs = item.gradNorms.map(value => Math.log10(Math.max(value, 1e-18)));
+      const minLog = Math.min(...gradLogs);
+      const maxLog = Math.max(...gradLogs);
+      const norm = value => (Math.log10(Math.max(value, 1e-18)) - minLog) / Math.max(maxLog - minLog, 1e-9);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+
+      const layerNodes = [];
+      for (let layer = 0; layer < layerTotal; layer += 1) {
+        const count = layer === 0 || layer === layerTotal - 1 ? 1 : maxVisible;
+        const nodes = [];
+        for (let i = 0; i < count; i += 1) {
+          const spread = height - margin.top - margin.bottom;
+          const y = count === 1 ? height / 2 : margin.top + (spread * i) / (count - 1);
+          nodes.push({ x: layerXs[layer], y });
+        }
+        layerNodes.push(nodes);
+      }
+
+      for (let layer = 0; layer < layerNodes.length - 1; layer += 1) {
+        const strength = norm(item.gradNorms[Math.min(layer, item.gradNorms.length - 1)] || 0);
+        ctx.strokeStyle = `rgba(103, 84, 164, ${0.08 + strength * 0.42})`;
+        ctx.lineWidth = 0.8 + strength * 2.4;
+        for (const a of layerNodes[layer]) {
+          for (const b of layerNodes[layer + 1]) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      layerNodes.forEach((nodes, layer) => {
+        const hidden = layer > 0 && layer < layerNodes.length - 1;
+        const strength = hidden ? norm(item.gradNorms[Math.min(layer - 1, item.gradNorms.length - 1)] || 0) : 0.65;
+        nodes.forEach(node => {
+          ctx.fillStyle = hidden ? `rgba(47, 88, 110, ${0.45 + strength * 0.45})` : colors.blue;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, hidden ? 7 : 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
+        ctx.fillStyle = colors.muted;
+        ctx.font = "12px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const label = layer === 0 ? "Input" : layer === layerNodes.length - 1 ? "Output" : `H${layer}`;
+        ctx.fillText(label, layerXs[layer], height - 16);
+        if (hidden && computed.run.width > maxVisible) ctx.fillText("...", layerXs[layer], height / 2);
+      });
+
+      ctx.fillStyle = colors.ink;
+      ctx.font = "700 13px Arial, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`${computed.run.activation} activation`, margin.left, 18);
+      ctx.fillStyle = colors.muted;
+      ctx.font = "12px Arial, sans-serif";
+      ctx.fillText(`gradient range ${formatNumber(item.minGrad, 3)} to ${formatNumber(item.maxGrad, 3)}`, margin.left + 132, 18);
+    }
+
+    function statusColor() {
+      const key = computed?.diagnosis?.key;
+      if (key === "perfect") return colors.green;
+      if (key === "vanishing") return colors.yellow;
+      if (key === "exploding") return colors.red;
+      if (key === "oscillating") return colors.orange;
+      return colors.teal;
+    }
+
+    function drawAll() {
+      drawFit();
+      drawLoss();
+      drawLandscape();
+      drawGradient();
+    }
+
+    function stopAnimation() {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      els.play.textContent = "Play";
+    }
+
+    function animate(timestamp) {
+      if (!lastTick) lastTick = timestamp;
+      const elapsed = timestamp - lastTick;
+      const maxIteration = computed.run.states.length - 1;
+      const jump = Math.max(1, Math.round(maxIteration / 180));
+      if (elapsed > 32) {
+        state.iteration = Math.min(maxIteration, state.iteration + jump);
+        els.iteration.value = String(state.iteration);
+        els.iterationLabel.textContent = `${state.iteration} / ${maxIteration}`;
+        updateMetrics();
+        drawAll();
+        lastTick = timestamp;
+      }
+      if (state.iteration >= maxIteration) {
+        stopAnimation();
+        return;
+      }
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    function startAnimation() {
+      if (state.iteration >= computed.run.states.length - 1) state.iteration = 0;
+      lastTick = 0;
+      els.play.textContent = "Pause";
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    function bindEvents() {
+      featureNames.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        els.feature.appendChild(option);
+      });
+
+      renderPresetButtons();
+
+      els.linearMode.addEventListener("click", () => setMode("linear"));
+      els.neuralMode.addEventListener("click", () => setMode("neural"));
+
+      els.feature.addEventListener("change", () => {
+        state.feature = els.feature.value;
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.scaleX.addEventListener("change", () => {
+        state.scaleX = els.scaleX.checked;
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.activation.addEventListener("change", () => {
+        state.nnActivation = els.activation.value;
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.depth.addEventListener("input", () => {
+        state.nnDepth = Number(els.depth.value);
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.width.addEventListener("input", () => {
+        state.nnWidth = Number(els.width.value);
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.initPower.addEventListener("input", () => {
+        state.nnInitPower = Number(els.initPower.value);
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.etaPower.addEventListener("input", () => {
+        state.etaPower = Number(els.etaPower.value);
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.epochs.addEventListener("input", () => {
+        state.epochs = Number(els.epochs.value);
+        state.activePreset = "";
+        state.iteration = Number(state.epochs);
+        stopAnimation();
+        updateAll();
+      });
+
+      els.iteration.addEventListener("input", () => {
+        state.iteration = Number(els.iteration.value);
+        stopAnimation();
+        syncControls();
+        updateMetrics();
+        drawAll();
+      });
+
+      els.restart.addEventListener("click", () => {
+        state.iteration = 0;
+        stopAnimation();
+        syncControls();
+        updateMetrics();
+        drawAll();
+      });
+
+      els.play.addEventListener("click", () => {
+        if (animationFrame) stopAnimation();
+        else startAnimation();
+      });
+
+      window.addEventListener("resize", () => {
+        if (computed) drawAll();
+      });
+    }
+
+    bindEvents();
+    syncControls();
+    updateAll();
+  </script>
+</body>
+</html>

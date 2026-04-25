@@ -1,0 +1,14 @@
+127.0.0.1 - - [25/Apr/2026 21:33:46] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:04] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:18] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:18] "GET /deck_media/image32.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:18] "GET /diabetes_data.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:18] "GET /deck_media/image2.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:34:18] code 404, message File not found
+127.0.0.1 - - [25/Apr/2026 21:34:18] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [25/Apr/2026 21:48:18] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:48:18] "GET /diabetes_data.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:48:18] "GET /deck_media/image32.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:48:19] "GET /deck_media/image2.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Apr/2026 21:48:19] code 404, message File not found
+127.0.0.1 - - [25/Apr/2026 21:48:19] "GET /favicon.ico HTTP/1.1" 404 -
