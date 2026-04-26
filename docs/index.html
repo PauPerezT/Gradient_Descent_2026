@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -415,6 +415,47 @@
       background: #ffffff;
     }
 
+    .exercise-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .exercise-pill {
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .guide-step {
+      display: grid;
+      gap: 6px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .guide-step strong {
+      color: var(--blue);
+      font-size: 12px;
+    }
+
+    .hint-box {
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: #eef5f8;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -779,8 +820,14 @@
         <section class="section" id="exerciseSection">
           <div class="label-row">Student Exercise</div>
           <div class="exercise-card">
-            <div class="exercise-kicker">Try it first, or reveal it right away</div>
-            <div class="exercise-text" id="exercisePrompt">Pick one training step and predict the next parameter update.</div>
+            <div class="exercise-kicker">Guided exercise</div>
+            <div class="exercise-pills">
+              <span class="exercise-pill">1. Read</span>
+              <span class="exercise-pill">2. Reason</span>
+              <span class="exercise-pill">3. Update</span>
+              <span class="exercise-pill">4. Reveal</span>
+            </div>
+            <div class="exercise-text" id="exercisePrompt">Pick one training step and walk through the update.</div>
             <div class="exercise-grid">
               <div class="control">
                 <div class="label-row">
@@ -788,6 +835,15 @@
                   <span class="readout" id="exerciseIterationLabel">1</span>
                 </div>
                 <input id="exerciseIteration" type="range" min="1" max="25" step="1" value="1">
+              </div>
+              <div class="guide-step">
+                <strong>Step 1. Observe the current state</strong>
+                <div class="exercise-text" id="exerciseStateCard">Iteration snapshot goes here.</div>
+              </div>
+              <div class="guide-step">
+                <strong>Step 2. Predict the direction</strong>
+                <div class="exercise-text" id="exerciseReasoning">Reasoning prompt goes here.</div>
+                <div class="hint-box" id="exerciseHint">Hint: if a gradient is positive, gradient descent subtracts it.</div>
               </div>
               <div class="control">
                 <div class="label-row">
@@ -801,11 +857,15 @@
                 </div>
                 <input id="exerciseNextB" type="number" step="any" placeholder="b_next">
               </div>
+              <div class="guide-step">
+                <strong>Step 3. Apply the rule</strong>
+                <div class="exercise-text" id="exerciseRuleText">Use w_next = w - eta·dw and b_next = b - eta·db.</div>
+              </div>
             </div>
             <div class="exercise-actions">
               <button class="command" id="exerciseCheck" type="button">Check</button>
               <button class="command secondary" id="exerciseReveal" type="button">Show step</button>
-              <button class="command secondary" id="exerciseGuided" type="button">Show solution</button>
+              <button class="command secondary" id="exerciseGuided" type="button">Show full guide</button>
             </div>
             <div class="exercise-feedback" id="exerciseFeedback"></div>
             <div class="exercise-solution hidden" id="exerciseSolution"></div>
@@ -868,14 +928,14 @@
           <article class="chart">
             <div class="chart-head">
               <div>
-                <div class="chart-title">Loss Through Time</div>
-                <div class="legend">
-                  <span class="swatch"><span class="dot"></span>optimization trace</span>
+                <div class="chart-title" id="lossTitle">Loss During Training</div>
+                <div class="legend" id="lossLegend">
+                  <span class="swatch"><span class="dot"></span>MSE</span>
                 </div>
               </div>
               <div class="chart-note" id="lossNote">log scale</div>
             </div>
-            <canvas id="lossCanvas" aria-label="Loss curve"></canvas>
+            <canvas id="lossCanvas" aria-label="Loss over gradient descent iterations"></canvas>
           </article>
 
           <article class="chart">
@@ -883,27 +943,27 @@
               <div>
                 <div class="chart-title" id="landscapeTitle">Loss Landscape</div>
                 <div class="legend" id="landscapeLegend">
-                  <span class="swatch"><span class="dot closed"></span>objective slice</span>
-                  <span class="swatch"><span class="dot"></span>current iterate</span>
+                  <span class="swatch"><span class="dot"></span>current w</span>
+                  <span class="swatch"><span class="dot closed"></span>optimal w</span>
                 </div>
               </div>
               <div class="chart-note" id="landscapeNote"></div>
             </div>
-            <canvas id="landscapeCanvas" aria-label="Loss landscape or gradient flow"></canvas>
+            <canvas id="landscapeCanvas" aria-label="Loss as a function of the weight"></canvas>
           </article>
 
           <article class="chart">
             <div class="chart-head">
               <div>
-                <div class="chart-title" id="gradientTitle">Gradient Dynamics</div>
+                <div class="chart-title" id="gradientTitle">Gradient Magnitude</div>
                 <div class="legend" id="gradientLegend">
-                  <span class="swatch"><span class="dot grad"></span>gradient norm</span>
-                  <span class="swatch"><span class="dot"></span>parameter step</span>
+                  <span class="swatch"><span class="dot grad"></span>|grad|</span>
+                  <span class="swatch"><span class="dot"></span>eta*|grad|</span>
                 </div>
               </div>
               <div class="chart-note" id="gradientNote"></div>
             </div>
-            <canvas id="gradientCanvas" aria-label="Gradient dynamics or network view"></canvas>
+            <canvas id="gradientCanvas" aria-label="Gradient magnitude over iterations"></canvas>
           </article>
         </div>
       </section>
@@ -911,130 +971,137 @@
   </main>
 
   <script>
-    const raw = window.DIABETES_RAW;
-    const target = window.DIABETES_TARGET;
     const featureNames = window.DIABETES_FEATURE_NAMES;
+    const rawRows = window.DIABETES_RAW;
+    const target = window.DIABETES_TARGET;
+    const n = target.length;
 
     const colors = {
-      bg: "#f4f7f9",
-      panel: "#ffffff",
       ink: "#13202a",
       muted: "#627889",
       line: "#d8e1e8",
+      grid: "#edf2f5",
       teal: "#2f586e",
       blue: "#204251",
-      green: "#6fa845",
-      yellow: "#c29b2e",
-      red: "#c94134",
-      orange: "#e0772f",
-      violet: "#6754a4",
-      data: "#8c9b95",
-      grid: "#ebeff3"
+      green: "#6b9f3a",
+      orange: "#de7c29",
+      red: "#c83e4d",
+      yellow: "#c49a21",
+      violet: "#6657a5",
+      data: "rgba(104, 113, 123, 0.42)",
+      fill: "rgba(15, 139, 141, 0.10)"
     };
 
-    const linearPresets = {
-      perfect: { label: "Perfect", feature: "bmi", scaleX: true, etaPower: -1, epochs: 1500 },
-      vanishing: { label: "Vanishing", feature: "bmi", scaleX: true, etaPower: -4.2, epochs: 1500 },
-      exploding: { label: "Exploding", feature: "bmi", scaleX: true, etaPower: 0.2, epochs: 120 },
-      oscillating: { label: "Oscillating", feature: "bp", scaleX: true, etaPower: 0.08, epochs: 180 },
-      unscaled: { label: "Unscaled slow", feature: "s5", scaleX: false, etaPower: -5, epochs: 1500 },
-      fast: { label: "Fast stable", feature: "s5", scaleX: true, etaPower: -0.85, epochs: 600 }
-    };
-
-    const nnPresets = {
-      perfect: { label: "Perfect", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -0.3, etaPower: -1.5, epochs: 2200 },
-      vanishing: { label: "Vanishing", nnActivation: "sigmoid", nnDepth: 7, nnWidth: 9, nnInitPower: -1.05, etaPower: -2.1, epochs: 2200 },
-      exploding: { label: "Exploding", nnActivation: "relu", nnDepth: 6, nnWidth: 11, nnInitPower: 0.65, etaPower: -0.15, epochs: 260 },
-      reluStable: { label: "ReLU stable", nnActivation: "relu", nnDepth: 4, nnWidth: 10, nnInitPower: -0.15, etaPower: -1.25, epochs: 1400 },
-      deepTanh: { label: "Deep tanh", nnActivation: "tanh", nnDepth: 8, nnWidth: 8, nnInitPower: -0.58, etaPower: -1.72, epochs: 2600 },
-      tinySteps: { label: "Tiny steps", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -4.2, etaPower: -4.2, epochs: 2200 }
-    };
-
-    const state = {
-      mode: "linear",
-      feature: "bmi",
-      scaleX: true,
-      etaPower: -1,
-      epochs: 1500,
-      iteration: 1500,
-      activePreset: "perfect",
-      nnActivation: "tanh",
-      nnDepth: 3,
-      nnWidth: 10,
-      nnInitPower: 0
+    const presetSets = {
+      linear: [
+        { id: "lin-perfect", label: "Perfect", feature: "bmi", scaleX: true, etaPower: -1, epochs: 1500 },
+        { id: "lin-vanishing", label: "Vanishing", feature: "bmi", scaleX: true, etaPower: -5, epochs: 1500 },
+        { id: "lin-exploding", label: "Exploding", feature: "bmi", scaleX: true, etaPower: 0.06, epochs: 120 },
+        { id: "lin-oscillating", label: "Oscillating", feature: "bmi", scaleX: true, etaPower: -0.004, epochs: 80 },
+        { id: "lin-unscaled", label: "Unscaled slow", feature: "bmi", scaleX: false, etaPower: -1, epochs: 1500 },
+        { id: "lin-fast", label: "Fast stable", feature: "s5", scaleX: true, etaPower: -0.35, epochs: 420 }
+      ],
+      neural: [
+        { id: "nn-perfect", label: "Perfect", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -0.02, etaPower: -1.45, epochs: 900 },
+        { id: "nn-vanishing", label: "Vanishing", nnActivation: "sigmoid", nnDepth: 10, nnWidth: 5, nnInitPower: -1.3, etaPower: -1.5, epochs: 900 },
+        { id: "nn-exploding", label: "Exploding", nnActivation: "tanh", nnDepth: 5, nnWidth: 9, nnInitPower: 0.45, etaPower: -0.6, epochs: 160 },
+        { id: "nn-relu", label: "ReLU stable", nnActivation: "relu", nnDepth: 4, nnWidth: 10, nnInitPower: 0.12, etaPower: -1.7, epochs: 800 },
+        { id: "nn-deep", label: "Deep tanh", nnActivation: "tanh", nnDepth: 9, nnWidth: 8, nnInitPower: -0.12, etaPower: -1.55, epochs: 1100 },
+        { id: "nn-tiny", label: "Tiny steps", nnActivation: "tanh", nnDepth: 4, nnWidth: 10, nnInitPower: -0.02, etaPower: -4, epochs: 1100 }
+      ]
     };
 
     const els = {
-      presets: document.getElementById("presets"),
-      feature: document.getElementById("feature"),
-      scaleX: document.getElementById("scaleX"),
-      etaPower: document.getElementById("etaPower"),
-      epochs: document.getElementById("epochs"),
-      iteration: document.getElementById("iteration"),
-      etaLabel: document.getElementById("etaLabel"),
-      epochsLabel: document.getElementById("epochsLabel"),
-      iterationLabel: document.getElementById("iterationLabel"),
-      featureStats: document.getElementById("featureStats"),
-      play: document.getElementById("play"),
-      restart: document.getElementById("restart"),
-      mse: document.getElementById("mse"),
-      mseGap: document.getElementById("mseGap"),
-      closedMse: document.getElementById("closedMse"),
-      closedParams: document.getElementById("closedParams"),
-      params: document.getElementById("params"),
-      bias: document.getElementById("bias"),
-      stepSize: document.getElementById("stepSize"),
-      gradNorm: document.getElementById("gradNorm"),
-      health: document.getElementById("health"),
-      healthDetail: document.getElementById("healthDetail"),
-      diagnosisCard: document.getElementById("diagnosisCard"),
-      fitCanvas: document.getElementById("fitCanvas"),
-      lossCanvas: document.getElementById("lossCanvas"),
-      landscapeCanvas: document.getElementById("landscapeCanvas"),
-      gradientCanvas: document.getElementById("gradientCanvas"),
-      fitNote: document.getElementById("fitNote"),
-      lossNote: document.getElementById("lossNote"),
-      landscapeNote: document.getElementById("landscapeNote"),
-      gradientNote: document.getElementById("gradientNote"),
-      linearMode: document.getElementById("linearMode"),
-      neuralMode: document.getElementById("neuralMode"),
-      linearControls: document.getElementById("linearControls"),
-      nnControls: document.getElementById("nnControls"),
-      activation: document.getElementById("activation"),
-      depth: document.getElementById("depth"),
-      width: document.getElementById("width"),
-      initPower: document.getElementById("initPower"),
-      activationLabel: document.getElementById("activationLabel"),
-      depthLabel: document.getElementById("depthLabel"),
-      widthLabel: document.getElementById("widthLabel"),
-      initLabel: document.getElementById("initLabel"),
-      formulaTitle: document.getElementById("formulaTitle"),
-      eq1: document.getElementById("eq1"),
-      eq2: document.getElementById("eq2"),
-      eq3: document.getElementById("eq3"),
-      eq4: document.getElementById("eq4"),
-      eq5: document.getElementById("eq5"),
-      exerciseSection: document.getElementById("exerciseSection"),
-      exercisePrompt: document.getElementById("exercisePrompt"),
-      exerciseIteration: document.getElementById("exerciseIteration"),
-      exerciseIterationLabel: document.getElementById("exerciseIterationLabel"),
-      exerciseNextW: document.getElementById("exerciseNextW"),
-      exerciseNextB: document.getElementById("exerciseNextB"),
-      exerciseCheck: document.getElementById("exerciseCheck"),
-      exerciseReveal: document.getElementById("exerciseReveal"),
-      exerciseGuided: document.getElementById("exerciseGuided"),
-      exerciseFeedback: document.getElementById("exerciseFeedback"),
-      exerciseSolution: document.getElementById("exerciseSolution"),
-      fitTitle: document.getElementById("fitTitle"),
-      fitLegend: document.getElementById("fitLegend"),
-      landscapeTitle: document.getElementById("landscapeTitle"),
-      landscapeLegend: document.getElementById("landscapeLegend"),
-      gradientTitle: document.getElementById("gradientTitle"),
-      gradientLegend: document.getElementById("gradientLegend"),
-      mseName: document.getElementById("mseName"),
-      closedName: document.getElementById("closedName"),
-      paramsName: document.getElementById("paramsName"),
-      stepName: document.getElementById("stepName")
+      presets: document.querySelector("#presets"),
+      linearMode: document.querySelector("#linearMode"),
+      neuralMode: document.querySelector("#neuralMode"),
+      linearControls: document.querySelector("#linearControls"),
+      nnControls: document.querySelector("#nnControls"),
+      feature: document.querySelector("#feature"),
+      featureStats: document.querySelector("#featureStats"),
+      scaleX: document.querySelector("#scaleX"),
+      activation: document.querySelector("#activation"),
+      activationLabel: document.querySelector("#activationLabel"),
+      depth: document.querySelector("#depth"),
+      depthLabel: document.querySelector("#depthLabel"),
+      width: document.querySelector("#width"),
+      widthLabel: document.querySelector("#widthLabel"),
+      initPower: document.querySelector("#initPower"),
+      initLabel: document.querySelector("#initLabel"),
+      etaPower: document.querySelector("#etaPower"),
+      etaLabel: document.querySelector("#etaLabel"),
+      epochs: document.querySelector("#epochs"),
+      epochsLabel: document.querySelector("#epochsLabel"),
+      iteration: document.querySelector("#iteration"),
+      iterationLabel: document.querySelector("#iterationLabel"),
+      play: document.querySelector("#play"),
+      restart: document.querySelector("#restart"),
+      diagnosisCard: document.querySelector("#diagnosisCard"),
+      health: document.querySelector("#health"),
+      healthDetail: document.querySelector("#healthDetail"),
+      mseName: document.querySelector("#mseName"),
+      mse: document.querySelector("#mse"),
+      mseGap: document.querySelector("#mseGap"),
+      closedName: document.querySelector("#closedName"),
+      closedMse: document.querySelector("#closedMse"),
+      closedParams: document.querySelector("#closedParams"),
+      paramsName: document.querySelector("#paramsName"),
+      params: document.querySelector("#params"),
+      bias: document.querySelector("#bias"),
+      stepName: document.querySelector("#stepName"),
+      stepSize: document.querySelector("#stepSize"),
+      gradNorm: document.querySelector("#gradNorm"),
+      formulaTitle: document.querySelector("#formulaTitle"),
+      eq1: document.querySelector("#eq1"),
+      eq2: document.querySelector("#eq2"),
+      eq3: document.querySelector("#eq3"),
+      eq4: document.querySelector("#eq4"),
+      eq5: document.querySelector("#eq5"),
+      exerciseSection: document.querySelector("#exerciseSection"),
+      exercisePrompt: document.querySelector("#exercisePrompt"),
+      exerciseIteration: document.querySelector("#exerciseIteration"),
+      exerciseIterationLabel: document.querySelector("#exerciseIterationLabel"),
+      exerciseStateCard: document.querySelector("#exerciseStateCard"),
+      exerciseReasoning: document.querySelector("#exerciseReasoning"),
+      exerciseHint: document.querySelector("#exerciseHint"),
+      exerciseRuleText: document.querySelector("#exerciseRuleText"),
+      exerciseNextW: document.querySelector("#exerciseNextW"),
+      exerciseNextB: document.querySelector("#exerciseNextB"),
+      exerciseCheck: document.querySelector("#exerciseCheck"),
+      exerciseReveal: document.querySelector("#exerciseReveal"),
+      exerciseGuided: document.querySelector("#exerciseGuided"),
+      exerciseFeedback: document.querySelector("#exerciseFeedback"),
+      exerciseSolution: document.querySelector("#exerciseSolution"),
+      fitTitle: document.querySelector("#fitTitle"),
+      fitLegend: document.querySelector("#fitLegend"),
+      fitNote: document.querySelector("#fitNote"),
+      lossTitle: document.querySelector("#lossTitle"),
+      lossLegend: document.querySelector("#lossLegend"),
+      lossNote: document.querySelector("#lossNote"),
+      landscapeTitle: document.querySelector("#landscapeTitle"),
+      landscapeLegend: document.querySelector("#landscapeLegend"),
+      landscapeNote: document.querySelector("#landscapeNote"),
+      gradientTitle: document.querySelector("#gradientTitle"),
+      gradientLegend: document.querySelector("#gradientLegend"),
+      gradientNote: document.querySelector("#gradientNote"),
+      fitCanvas: document.querySelector("#fitCanvas"),
+      lossCanvas: document.querySelector("#lossCanvas"),
+      landscapeCanvas: document.querySelector("#landscapeCanvas"),
+      gradientCanvas: document.querySelector("#gradientCanvas")
+    };
+
+    let state = {
+      mode: "linear",
+      activePreset: "lin-perfect",
+      feature: "bmi",
+      scaleX: true,
+      nnActivation: "tanh",
+      nnDepth: 3,
+      nnWidth: 10,
+      nnInitPower: -0.02,
+      etaPower: -1,
+      epochs: 1500,
+      iteration: 1500
     };
 
     let computed = null;
@@ -1042,29 +1109,54 @@
     let lastTick = 0;
     let exerciseState = { iteration: 1 };
 
-    const neuralX = Array.from({ length: 72 }, (_, i) => -1 + (2 * i) / 71);
-    const neuralY = neuralX.map(x => 0.62 * Math.sin(2.4 * x) + 0.16 * Math.cos(6.2 * x));
-    const neuralGrid = Array.from({ length: 180 }, (_, i) => -1.1 + (2.2 * i) / 179);
-    const neuralTruth = neuralGrid.map(x => 0.62 * Math.sin(2.4 * x) + 0.16 * Math.cos(6.2 * x));
-
-    function featureVector(name) {
-      const index = featureNames.indexOf(name);
-      return raw.map(row => row[index]);
-    }
-
     function mean(values) {
       return values.reduce((sum, value) => sum + value, 0) / values.length;
     }
 
-    function std(values, mu) {
-      const m = mu ?? mean(values);
-      return Math.sqrt(values.reduce((sum, value) => sum + (value - m) ** 2, 0) / values.length);
+    function variance(values, center) {
+      return values.reduce((sum, value) => sum + (value - center) ** 2, 0) / values.length;
     }
+
+    function formatNumber(value, digits = 3) {
+      if (!Number.isFinite(value)) return "inf";
+      const abs = Math.abs(value);
+      if (abs !== 0 && (abs >= 100000 || abs < 0.001)) return value.toExponential(2);
+      return value.toLocaleString(undefined, {
+        maximumFractionDigits: digits,
+        minimumFractionDigits: abs < 10 ? Math.min(2, digits) : 0
+      });
+    }
+
+    function formatEta(value) {
+      if (value < 0.001 || value >= 1) return value.toExponential(2);
+      return value.toFixed(value < 0.01 ? 5 : 4);
+    }
+
+    function scaledNotebookData() {
+      const columns = featureNames.map((_, col) => rawRows.map(row => row[col]));
+      const stats = columns.map(column => {
+        const mu = mean(column);
+        const sigma = Math.sqrt(variance(column, mu));
+        return { mu, sigma };
+      });
+      return rawRows.map(row => row.map((value, col) => (value - stats[col].mu) / (stats[col].sigma * Math.sqrt(n))));
+    }
+
+    const notebookRows = scaledNotebookData();
 
     function standardize(values) {
       const mu = mean(values);
-      const sigma = std(values, mu) || 1;
+      const sigma = Math.sqrt(variance(values, mu));
       return values.map(value => (value - mu) / sigma);
+    }
+
+    function prepareFeature(feature, scaleX) {
+      const col = featureNames.indexOf(feature);
+      const xBase = notebookRows.map(row => row[col]);
+      const x = scaleX ? standardize(xBase) : xBase.slice();
+      const mu = mean(x);
+      const sigma = Math.sqrt(variance(x, mu));
+      return { x, mu, sigma };
     }
 
     function predict(x, w, b) {
@@ -1074,312 +1166,492 @@
     function computeLoss(x, y, w, b) {
       let sum = 0;
       for (let i = 0; i < x.length; i += 1) {
-        const residual = predict(x[i], w, b) - y[i];
-        sum += residual * residual;
+        const error = predict(x[i], w, b) - y[i];
+        sum += error * error;
       }
       return sum / x.length;
     }
 
-    function closedForm(x, y) {
-      const xMean = mean(x);
-      const yMean = mean(y);
+    function computeGradients(x, y, w, b) {
+      let dw = 0;
+      let db = 0;
+      for (let i = 0; i < x.length; i += 1) {
+        const error = predict(x[i], w, b) - y[i];
+        dw += x[i] * error;
+        db += error;
+      }
+      return [(2 / x.length) * dw, (2 / x.length) * db];
+    }
+
+    function closedFormSolution(x, y) {
+      const mx = mean(x);
+      const my = mean(y);
       let numerator = 0;
       let denominator = 0;
       for (let i = 0; i < x.length; i += 1) {
-        numerator += (x[i] - xMean) * (y[i] - yMean);
-        denominator += (x[i] - xMean) ** 2;
+        numerator += (x[i] - mx) * (y[i] - my);
+        denominator += (x[i] - mx) ** 2;
       }
-      const w = numerator / denominator;
-      const b = yMean - w * xMean;
+      const w = denominator === 0 ? 0 : numerator / denominator;
+      const b = my - w * mx;
       return { w, b, mse: computeLoss(x, y, w, b) };
     }
 
     function gradientDescent(x, y, eta, epochs) {
       let w = 0;
       let b = 0;
-      const states = [{ w, b, loss: computeLoss(x, y, w, b), dw: 0, db: 0 }];
-      for (let step = 1; step <= epochs; step += 1) {
-        let dw = 0;
-        let db = 0;
-        for (let i = 0; i < x.length; i += 1) {
-          const residual = predict(x[i], w, b) - y[i];
-          dw += x[i] * residual;
-          db += residual;
-        }
-        dw = (2 / x.length) * dw;
-        db = (2 / x.length) * db;
+      let [dw, db] = computeGradients(x, y, w, b);
+      const states = [{ w, b, dw, db, loss: computeLoss(x, y, w, b), step: eta * Math.hypot(dw, db) }];
+      let exploded = false;
+      let stoppedAt = epochs;
+
+      for (let t = 1; t <= epochs; t += 1) {
+        [dw, db] = computeGradients(x, y, w, b);
         w -= eta * dw;
         b -= eta * db;
         const loss = computeLoss(x, y, w, b);
-        states.push({ w, b, loss, dw, db });
-        if (!Number.isFinite(loss) || Math.abs(w) > 1e9 || Math.abs(b) > 1e9) break;
-      }
-      return { states };
-    }
+        const nextGrad = computeGradients(x, y, w, b);
+        const step = eta * Math.hypot(nextGrad[0], nextGrad[1]);
 
-    function activationForward(name, z) {
-      if (name === "sigmoid") {
-        if (z >= 0) {
-          const exp = Math.exp(-z);
-          return 1 / (1 + exp);
-        }
-        const exp = Math.exp(z);
-        return exp / (1 + exp);
-      }
-      if (name === "relu") return z > 0 ? z : 0;
-      return Math.tanh(z);
-    }
-
-    function activationDerivative(name, activated, z) {
-      if (name === "sigmoid") return activated * (1 - activated);
-      if (name === "relu") return z > 0 ? 1 : 0;
-      return 1 - activated * activated;
-    }
-
-    function initNetwork(depth, width, activation, initScale) {
-      const layers = [];
-      let inSize = 1;
-      for (let layer = 0; layer < depth; layer += 1) {
-        const outSize = width;
-        const limit = activation === "relu" ? Math.sqrt(2 / inSize) : Math.sqrt(1 / inSize);
-        const scale = limit * initScale;
-        const weights = Array.from({ length: outSize }, () => Array.from({ length: inSize }, () => (Math.random() * 2 - 1) * scale));
-        const biases = Array.from({ length: outSize }, () => 0);
-        layers.push({ weights, biases });
-        inSize = outSize;
-      }
-      const outScale = Math.sqrt(1 / inSize) * initScale;
-      layers.push({
-        weights: [Array.from({ length: inSize }, () => (Math.random() * 2 - 1) * outScale)],
-        biases: [0]
-      });
-      return layers;
-    }
-
-    function forwardNetwork(layers, input, activation) {
-      let current = [input];
-      const cache = [];
-      for (let layerIndex = 0; layerIndex < layers.length; layerIndex += 1) {
-        const layer = layers[layerIndex];
-        const z = layer.weights.map((weights, neuronIndex) => {
-          let sum = layer.biases[neuronIndex];
-          for (let j = 0; j < weights.length; j += 1) sum += weights[j] * current[j];
-          return sum;
-        });
-        const isOutput = layerIndex === layers.length - 1;
-        const a = isOutput ? z.slice() : z.map(value => activationForward(activation, value));
-        cache.push({ input: current, z, a, isOutput });
-        current = a;
-      }
-      return { output: current[0], cache };
-    }
-
-    function cloneLayers(layers) {
-      return layers.map(layer => ({
-        weights: layer.weights.map(row => row.slice()),
-        biases: layer.biases.slice()
-      }));
-    }
-
-    function gradientNorm(grads) {
-      let total = 0;
-      for (const layer of grads) {
-        for (const row of layer.weights) for (const value of row) total += value * value;
-        for (const value of layer.biases) total += value * value;
-      }
-      return Math.sqrt(total);
-    }
-
-    function trainNeuralNetwork(config) {
-      const { depth, width, activation, eta, epochs, initScale } = config;
-      let layers = initNetwork(depth, width, activation, initScale);
-      const states = [];
-
-      for (let epoch = 0; epoch <= epochs; epoch += 1) {
-        const predictions = [];
-        const examples = [];
-        let lossSum = 0;
-
-        for (let i = 0; i < neuralX.length; i += 1) {
-          const result = forwardNetwork(layers, neuralX[i], activation);
-          predictions.push(result.output);
-          examples.push(result);
-          const residual = result.output - neuralY[i];
-          lossSum += residual * residual;
+        if (!Number.isFinite(loss) || Math.abs(w) > 1e14 || Math.abs(b) > 1e14 || loss > 1e18) {
+          exploded = true;
+          stoppedAt = t;
+          states.push({ w, b, dw: nextGrad[0], db: nextGrad[1], loss, step });
+          break;
         }
 
-        const mse = lossSum / neuralX.length;
-        const sampleCurve = neuralGrid.map(value => forwardNetwork(layers, value, activation).output);
-
-        const grads = layers.map(layer => ({
-          weights: layer.weights.map(row => row.map(() => 0)),
-          biases: layer.biases.map(() => 0)
-        }));
-
-        for (let i = 0; i < neuralX.length; i += 1) {
-          const { cache } = examples[i];
-          let delta = [2 * (predictions[i] - neuralY[i]) / neuralX.length];
-
-          for (let layerIndex = layers.length - 1; layerIndex >= 0; layerIndex -= 1) {
-            const layerCache = cache[layerIndex];
-            const input = layerCache.input;
-            const currentDelta = delta;
-
-            for (let neuron = 0; neuron < currentDelta.length; neuron += 1) {
-              grads[layerIndex].biases[neuron] += currentDelta[neuron];
-              for (let j = 0; j < input.length; j += 1) {
-                grads[layerIndex].weights[neuron][j] += currentDelta[neuron] * input[j];
-              }
-            }
-
-            if (layerIndex > 0) {
-              const prevCache = cache[layerIndex - 1];
-              const nextDelta = new Array(prevCache.a.length).fill(0);
-              for (let j = 0; j < prevCache.a.length; j += 1) {
-                let sum = 0;
-                for (let neuron = 0; neuron < currentDelta.length; neuron += 1) {
-                  sum += layers[layerIndex].weights[neuron][j] * currentDelta[neuron];
-                }
-                nextDelta[j] = sum * activationDerivative(activation, prevCache.a[j], prevCache.z[j]);
-              }
-              delta = nextDelta;
-            }
-          }
-        }
-
-        const gradNorms = grads.map(layer => {
-          let total = 0;
-          for (const row of layer.weights) for (const value of row) total += value * value;
-          for (const value of layer.biases) total += value * value;
-          return Math.sqrt(total);
-        });
-
-        states.push({
-          mse,
-          gradNorms,
-          totalGrad: gradientNorm(grads),
-          curve: sampleCurve,
-          predictions,
-          minGrad: Math.min(...gradNorms),
-          maxGrad: Math.max(...gradNorms)
-        });
-
-        if (epoch === epochs || !Number.isFinite(mse)) break;
-
-        for (let layerIndex = 0; layerIndex < layers.length; layerIndex += 1) {
-          const layer = layers[layerIndex];
-          for (let neuron = 0; neuron < layer.weights.length; neuron += 1) {
-            for (let j = 0; j < layer.weights[neuron].length; j += 1) {
-              layer.weights[neuron][j] -= eta * grads[layerIndex].weights[neuron][j];
-            }
-            layer.biases[neuron] -= eta * grads[layerIndex].biases[neuron];
-          }
-        }
-
-        if (states[states.length - 1].totalGrad > 1e12) break;
+        states.push({ w, b, dw: nextGrad[0], db: nextGrad[1], loss, step });
       }
 
-      return {
-        states,
-        finalLayers: cloneLayers(layers),
-        activation,
-        depth,
-        width
+      return { states, exploded, stoppedAt };
+    }
+
+    const neuralX = Array.from({ length: 54 }, (_, i) => -1 + (2 * i) / 53);
+    const neuralY = neuralX.map(x => 0.58 * Math.sin(1.65 * Math.PI * x) + 0.28 * x + 0.12 * Math.cos(3.4 * Math.PI * x));
+    const neuralGrid = Array.from({ length: 120 }, (_, i) => -1.08 + (2.16 * i) / 119);
+    const neuralTruth = neuralGrid.map(x => 0.58 * Math.sin(1.65 * Math.PI * x) + 0.28 * x + 0.12 * Math.cos(3.4 * Math.PI * x));
+
+    function makeRng(seed) {
+      let value = seed >>> 0;
+      return () => {
+        value = (1664525 * value + 1013904223) >>> 0;
+        return value / 4294967296;
       };
     }
 
-    function formatNumber(value, digits = 4) {
-      if (!Number.isFinite(value)) return "overflow";
-      const abs = Math.abs(value);
-      if (abs >= 10000 || (abs > 0 && abs < 0.001)) return value.toExponential(2);
-      return value.toFixed(digits);
+    function randomNormal(rng) {
+      const u1 = Math.max(rng(), 1e-12);
+      const u2 = rng();
+      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     }
 
-    function formatEta(value) {
-      if (value < 0.001 || value >= 1000) return value.toExponential(2);
-      return value.toFixed(4);
+    function activationValue(z, activation) {
+      if (activation === "sigmoid") return 1 / (1 + Math.exp(-Math.max(-60, Math.min(60, z))));
+      if (activation === "relu") return Math.max(0, z);
+      return Math.tanh(z);
     }
 
-    function computeLinearModel() {
-      const rawFeature = featureVector(state.feature);
-      const x = state.scaleX ? standardize(rawFeature) : rawFeature.slice();
-      const eta = 10 ** state.etaPower;
-      const closed = closedForm(x, target);
-      const run = gradientDescent(x, target, eta, Number(state.epochs));
-      const diagnosis = diagnoseLinear(run, closed, eta);
-      return { mode: "linear", x, eta, closed, run, diagnosis };
+    function activationDerivative(z, a, activation) {
+      if (activation === "sigmoid") return a * (1 - a);
+      if (activation === "relu") return z > 0 ? 1 : 0;
+      return 1 - a * a;
     }
 
-    function diagnoseLinear(run, closed, eta) {
-      const states = run.states;
-      const final = states[states.length - 1];
-      const finiteLosses = states.map(item => item.loss).filter(Number.isFinite);
-      const initialLoss = states[0].loss;
-      const finalLoss = final.loss;
-      const gap = Number.isFinite(finalLoss) ? finalLoss - closed.mse : Infinity;
-      const maxLoss = finiteLosses.length ? Math.max(...finiteLosses) : Infinity;
-      const lossWentUp = finiteLosses.length > 6 && finiteLosses.slice(-6).every((loss, idx, arr) => idx === 0 || loss > arr[idx - 1]);
-      const stepNorm = Math.hypot(final.dw, final.db) * eta;
-      const finalDistance = Math.hypot(final.w - closed.w, final.b - closed.b);
+    function createNetwork(depth, width, activation, initScale) {
+      const sizes = [1, ...Array.from({ length: depth }, () => width), 1];
+      const seed = 713 + depth * 97 + width * 29 + Math.round(initScale * 1000) + activation.length * 131;
+      const rng = makeRng(seed);
+      const weights = [];
+      const biases = [];
 
-      if (!Number.isFinite(finalLoss) || Math.abs(final.w) > 1e6 || maxLoss > initialLoss * 20 || lossWentUp) {
-        return { key: "exploding", label: "Exploding", detail: "The learning rate is too aggressive, so updates overshoot and the loss shoots upward." };
+      for (let layer = 0; layer < sizes.length - 1; layer += 1) {
+        const fanIn = sizes[layer];
+        const fanOut = sizes[layer + 1];
+        const base = activation === "relu" ? Math.sqrt(2 / fanIn) : Math.sqrt(1 / fanIn);
+        const layerWeights = [];
+        const layerBiases = [];
+        for (let i = 0; i < fanIn; i += 1) {
+          const row = [];
+          for (let j = 0; j < fanOut; j += 1) row.push(randomNormal(rng) * initScale * base);
+          layerWeights.push(row);
+        }
+        for (let j = 0; j < fanOut; j += 1) layerBiases.push(0);
+        weights.push(layerWeights);
+        biases.push(layerBiases);
       }
-      if (finalDistance < 0.12 && gap < 0.6) {
-        return { key: "perfect", label: "Perfect", detail: "Gradient descent has essentially reached the same basin as the closed-form optimum." };
+
+      return { sizes, weights, biases, activation };
+    }
+
+    function forwardNetwork(net, x) {
+      const activations = [[x]];
+      const zs = [];
+      let current = [x];
+
+      for (let layer = 0; layer < net.weights.length; layer += 1) {
+        const next = [];
+        const zLayer = [];
+        const outputLayer = layer === net.weights.length - 1;
+        for (let j = 0; j < net.biases[layer].length; j += 1) {
+          let z = net.biases[layer][j];
+          for (let i = 0; i < current.length; i += 1) z += current[i] * net.weights[layer][i][j];
+          zLayer.push(z);
+          next.push(outputLayer ? z : activationValue(z, net.activation));
+        }
+        zs.push(zLayer);
+        activations.push(next);
+        current = next;
       }
-      if (stepNorm < 0.002 && gap > 20) {
-        return { key: "vanishing", label: "Vanishing", detail: "Updates are tiny, so progress is barely visible before the epoch budget runs out." };
-      }
-      if (states.length > 18) {
-        const tail = states.slice(-18);
-        const around = tail.reduce((sum, item) => sum + item.w, 0) / tail.length;
-        const signFlips = tail.slice(1).filter((item, idx) => Math.sign(item.w - around) !== Math.sign(tail[idx].w - around)).length;
-        if (signFlips > 10 && gap > 5) {
-          return { key: "oscillating", label: "Oscillating", detail: "The method keeps bouncing around the valley instead of settling, a classic overshoot pattern." };
+
+      return { output: current[0], activations, zs };
+    }
+
+    function emptyGradients(net) {
+      return {
+        weights: net.weights.map(layer => layer.map(row => row.map(() => 0))),
+        biases: net.biases.map(layer => layer.map(() => 0))
+      };
+    }
+
+    function networkBatch(net, xs, ys) {
+      const grads = emptyGradients(net);
+      let loss = 0;
+
+      for (let sample = 0; sample < xs.length; sample += 1) {
+        const pass = forwardNetwork(net, xs[sample]);
+        const error = pass.output - ys[sample];
+        loss += error * error;
+        let delta = [2 * error / xs.length];
+
+        for (let layer = net.weights.length - 1; layer >= 0; layer -= 1) {
+          const prevActivations = pass.activations[layer];
+          for (let i = 0; i < prevActivations.length; i += 1) {
+            for (let j = 0; j < delta.length; j += 1) {
+              grads.weights[layer][i][j] += prevActivations[i] * delta[j];
+            }
+          }
+          for (let j = 0; j < delta.length; j += 1) grads.biases[layer][j] += delta[j];
+
+          if (layer > 0) {
+            const prevDelta = [];
+            for (let i = 0; i < net.sizes[layer]; i += 1) {
+              let backprop = 0;
+              for (let j = 0; j < delta.length; j += 1) backprop += net.weights[layer][i][j] * delta[j];
+              prevDelta.push(backprop * activationDerivative(pass.zs[layer - 1][i], pass.activations[layer][i], net.activation));
+            }
+            delta = prevDelta;
+          }
         }
       }
-      return { key: "learning", label: "Learning", detail: "The trajectory is heading the right way, but it has not yet settled onto the optimum." };
+
+      loss /= xs.length;
+      const gradNorms = grads.weights.map((layer, idx) => {
+        let sum = 0;
+        for (let i = 0; i < layer.length; i += 1) {
+          for (let j = 0; j < layer[i].length; j += 1) sum += layer[i][j] * layer[i][j];
+        }
+        for (const value of grads.biases[idx]) sum += value * value;
+        return Math.sqrt(sum);
+      });
+      const finiteNorms = gradNorms.filter(value => Number.isFinite(value) && value > 0);
+      const maxGrad = finiteNorms.length ? Math.max(...finiteNorms) : 0;
+      const minGrad = finiteNorms.length ? Math.min(...finiteNorms) : 0;
+      const inputOutputRatio = gradNorms.length > 1 ? gradNorms[0] / Math.max(gradNorms[gradNorms.length - 1], 1e-18) : 1;
+
+      return { loss, grads, gradNorms, maxGrad, minGrad, inputOutputRatio };
     }
 
-    function computeNeuralModel() {
-      const eta = 10 ** state.etaPower;
-      const initScale = 10 ** state.nnInitPower;
-      const run = trainNeuralNetwork({
-        depth: Number(state.nnDepth),
-        width: Number(state.nnWidth),
-        activation: state.nnActivation,
-        eta,
-        epochs: Number(state.epochs),
-        initScale
-      });
-      const diagnosis = diagnoseNeural(run);
-      return { mode: "neural", eta, run, diagnosis, initScale };
+    function applyNetworkGradients(net, grads, eta) {
+      for (let layer = 0; layer < net.weights.length; layer += 1) {
+        for (let i = 0; i < net.weights[layer].length; i += 1) {
+          for (let j = 0; j < net.weights[layer][i].length; j += 1) {
+            net.weights[layer][i][j] -= eta * grads.weights[layer][i][j];
+          }
+        }
+        for (let j = 0; j < net.biases[layer].length; j += 1) net.biases[layer][j] -= eta * grads.biases[layer][j];
+      }
+    }
+
+    function predictNetworkCurve(net) {
+      return neuralGrid.map(x => forwardNetwork(net, x).output);
+    }
+
+    function networkState(epoch, batch, eta, net) {
+      return {
+        epoch,
+        loss: batch.loss,
+        gradNorms: batch.gradNorms.slice(),
+        maxGrad: batch.maxGrad,
+        minGrad: batch.minGrad,
+        inputOutputRatio: batch.inputOutputRatio,
+        step: eta * batch.maxGrad,
+        curve: predictNetworkCurve(net)
+      };
+    }
+
+    function trainNetwork(config) {
+      const net = createNetwork(config.depth, config.width, config.activation, config.initScale);
+      const states = [];
+      let exploded = false;
+      let stoppedAt = config.epochs;
+      let batch = networkBatch(net, neuralX, neuralY);
+      states.push(networkState(0, batch, config.eta, net));
+
+      for (let epoch = 1; epoch <= config.epochs; epoch += 1) {
+        applyNetworkGradients(net, batch.grads, config.eta);
+        batch = networkBatch(net, neuralX, neuralY);
+
+        if (!Number.isFinite(batch.loss) || !Number.isFinite(batch.maxGrad) || batch.loss > 1e8 || batch.maxGrad > 1e8) {
+          exploded = true;
+          stoppedAt = epoch;
+          states.push(networkState(epoch, batch, config.eta, net));
+          break;
+        }
+
+        states.push(networkState(epoch, batch, config.eta, net));
+      }
+
+      const bestLoss = Math.min(...states.map(item => Number.isFinite(item.loss) ? item.loss : Infinity));
+      return {
+        states,
+        exploded,
+        stoppedAt,
+        bestLoss,
+        depth: config.depth,
+        width: config.width,
+        activation: config.activation,
+        initScale: config.initScale,
+        layerCount: config.depth + 1
+      };
+    }
+
+    function diagnose(run, closed, eta) {
+      const states = run.states;
+      const first = states[0];
+      const final = states[states.length - 1];
+      const gap = final.loss - closed.mse;
+      const possibleProgress = Math.max(first.loss - closed.mse, 1e-9);
+      const progress = (first.loss - final.loss) / possibleProgress;
+      const gradNorm = Math.hypot(final.dw, final.db);
+      const step = eta * gradNorm;
+      const recent = states.slice(Math.max(1, states.length - 40)).map(item => item.loss);
+      let reversals = 0;
+      for (let i = 2; i < recent.length; i += 1) {
+        const a = recent[i - 1] - recent[i - 2];
+        const b = recent[i] - recent[i - 1];
+        if (a * b < 0) reversals += 1;
+      }
+      const path = states.slice(Math.max(1, states.length - 80));
+      let crossings = 0;
+      for (let i = 1; i < path.length; i += 1) {
+        const prevW = path[i - 1].w - closed.w;
+        const nextW = path[i].w - closed.w;
+        const prevB = path[i - 1].b - closed.b;
+        const nextB = path[i].b - closed.b;
+        if (prevW * nextW < 0) crossings += 1;
+        if (prevB * nextB < 0) crossings += 1;
+      }
+
+      if (run.exploded || final.loss > first.loss * 25 || !Number.isFinite(final.loss)) {
+        return {
+          key: "exploding",
+          label: "Exploding",
+          detail: `Loss blew up around iteration ${run.stoppedAt}. eta is larger than this landscape can absorb.`
+        };
+      }
+
+      if (gap <= Math.max(1e-3, closed.mse * 0.0005)) {
+        return {
+          key: "perfect",
+          label: "Perfect",
+          detail: "GD has reached the closed-form line for this feature."
+        };
+      }
+
+      if ((reversals > 12 || crossings > 16) && gap > Math.max(1, closed.mse * 0.002)) {
+        return {
+          key: "oscillating",
+          label: "Oscillating",
+          detail: "The step is stable, but it keeps overshooting the valley."
+        };
+      }
+
+      if (progress < 0.2 || (step < 1e-3 && gap > 10)) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Updates are too small to close the gap in the chosen epochs."
+        };
+      }
+
+      return {
+        key: "learning",
+        label: "Learning",
+        detail: "Updates are still moving toward the closed-form solution."
+      };
     }
 
     function diagnoseNeural(run) {
-      const final = run.states[run.states.length - 1];
-      const first = run.states[0];
-      if (!Number.isFinite(final.mse) || final.totalGrad > 1e8) {
-        return { key: "exploding", label: "Exploding", detail: "Backpropagated signals are blowing up across layers, so the network destabilizes." };
+      const states = run.states;
+      const first = states[0];
+      const final = states[states.length - 1];
+      const improvement = first.loss - final.loss;
+      const relativeImprovement = improvement / Math.max(first.loss, 1e-12);
+      const layerRatio = final.inputOutputRatio;
+      const spread = final.minGrad > 0 ? final.maxGrad / final.minGrad : Infinity;
+
+      if (run.exploded || !Number.isFinite(final.loss) || !Number.isFinite(final.maxGrad) || final.loss > 1e6 || final.maxGrad > 1e5) {
+        return {
+          key: "exploding",
+          label: "Exploding",
+          detail: `Gradients blew up around epoch ${run.stoppedAt}; the update cannot stay inside the valley.`
+        };
       }
-      const gradRatio = final.maxGrad / Math.max(final.minGrad, 1e-18);
-      if (final.maxGrad < 0.02 || (final.minGrad < 1e-6 && gradRatio > 1e5)) {
-        return { key: "vanishing", label: "Vanishing", detail: "Early layers barely receive signal, so their weights change too slowly to learn useful structure." };
+
+      if (final.loss < 0.018 && spread < 1e5) {
+        return {
+          key: "perfect",
+          label: "Perfect",
+          detail: "The network fits the curve and gradients still flow through the layers."
+        };
       }
-      if (final.mse < 0.02 || final.mse < first.mse * 0.08) {
-        return { key: "perfect", label: "Perfect", detail: "Gradient flow stays healthy enough for the network to fit the nonlinear target smoothly." };
+
+      if (run.depth >= 6 && (Math.abs(layerRatio) < 1e-4 || spread > 1e7 || relativeImprovement < 0.08)) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Early layers receive tiny gradients compared with the output layer."
+        };
       }
-      return { key: "learning", label: "Learning", detail: "The network is improving, though it has not yet reached the most efficient gradient regime." };
+
+      if (relativeImprovement < 0.04 || final.step < 1e-6) {
+        return {
+          key: "vanishing",
+          label: "Vanishing",
+          detail: "Updates are too small to change the function in the chosen epochs."
+        };
+      }
+
+      return {
+        key: "learning",
+        label: "Learning",
+        detail: "The network is improving, but it has not fully settled yet."
+      };
     }
 
-    function computeModel() {
-      return state.mode === "linear" ? computeLinearModel() : computeNeuralModel();
+    function compute() {
+      const eta = 10 ** Number(state.etaPower);
+      let run;
+      if (state.mode === "neural") {
+        const config = {
+          activation: state.nnActivation,
+          depth: Number(state.nnDepth),
+          width: Number(state.nnWidth),
+          initScale: 10 ** Number(state.nnInitPower),
+          eta,
+          epochs: Number(state.epochs)
+        };
+        run = trainNetwork(config);
+        const diagnosis = diagnoseNeural(run);
+        computed = { mode: "neural", eta, run, diagnosis, config };
+      } else {
+        const prepared = prepareFeature(state.feature, state.scaleX);
+        const closed = closedFormSolution(prepared.x, target);
+        run = gradientDescent(prepared.x, target, eta, Number(state.epochs));
+        const diagnosis = diagnose(run, closed, eta);
+        computed = { mode: "linear", ...prepared, eta, closed, run, diagnosis };
+      }
+
+      const maxIteration = run.states.length - 1;
+      state.iteration = Math.min(Number(state.iteration), maxIteration);
+      els.iteration.max = String(maxIteration);
+      els.iteration.value = String(state.iteration);
+    }
+
+    function setPreset(id) {
+      const preset = presetSets[state.mode].find(item => item.id === id);
+      if (!preset) return;
+      state = {
+        ...state,
+        activePreset: id,
+        feature: preset.feature ?? state.feature,
+        scaleX: preset.scaleX ?? state.scaleX,
+        nnActivation: preset.nnActivation ?? state.nnActivation,
+        nnDepth: preset.nnDepth ?? state.nnDepth,
+        nnWidth: preset.nnWidth ?? state.nnWidth,
+        nnInitPower: preset.nnInitPower ?? state.nnInitPower,
+        etaPower: preset.etaPower,
+        epochs: preset.epochs,
+        iteration: preset.epochs
+      };
+      stopAnimation();
+      syncControls();
+      updateAll();
+    }
+
+    function renderPresetButtons() {
+      els.presets.innerHTML = "";
+      presetSets[state.mode].forEach(preset => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "preset";
+        button.dataset.preset = preset.id;
+        button.textContent = preset.label;
+        button.addEventListener("click", () => setPreset(preset.id));
+        els.presets.appendChild(button);
+      });
+    }
+
+    function setMode(mode) {
+      if (state.mode === mode) return;
+      stopAnimation();
+      state.mode = mode;
+      renderPresetButtons();
+      setPreset(presetSets[mode][0].id);
+    }
+
+    function syncControls() {
+      els.linearMode.classList.toggle("active", state.mode === "linear");
+      els.neuralMode.classList.toggle("active", state.mode === "neural");
+      els.linearControls.classList.toggle("hidden", state.mode !== "linear");
+      els.nnControls.classList.toggle("hidden", state.mode !== "neural");
+      els.exerciseSection.classList.toggle("hidden", state.mode !== "linear");
+      els.feature.value = state.feature;
+      els.scaleX.checked = state.scaleX;
+      els.activation.value = state.nnActivation;
+      els.activationLabel.textContent = state.nnActivation;
+      els.depth.value = String(state.nnDepth);
+      els.depthLabel.textContent = String(state.nnDepth);
+      els.width.value = String(state.nnWidth);
+      els.widthLabel.textContent = String(state.nnWidth);
+      els.initPower.value = String(state.nnInitPower);
+      els.initLabel.textContent = formatNumber(10 ** Number(state.nnInitPower), 3);
+      const epochMax = state.mode === "neural" ? 1600 : 5000;
+      els.epochs.max = String(epochMax);
+      els.epochs.step = state.mode === "neural" ? "10" : "5";
+      if (Number(state.epochs) > epochMax) state.epochs = epochMax;
+      els.etaPower.value = String(state.etaPower);
+      els.epochs.value = String(state.epochs);
+      els.iteration.value = String(state.iteration);
+      els.etaLabel.textContent = formatEta(10 ** Number(state.etaPower));
+      els.epochsLabel.textContent = String(state.epochs);
+      els.iterationLabel.textContent = `${state.iteration} / ${els.iteration.max || state.epochs}`;
+      [...els.presets.children].forEach(button => {
+        button.classList.toggle("active", button.dataset.preset === state.activePreset);
+      });
+      updateTextSystem();
+    }
+
+    function updateAll() {
+      compute();
+      syncControls();
+      updateMetrics();
+      updateExercisePrompt();
+      drawAll();
     }
 
     function currentState() {
-      const index = Math.min(state.iteration, computed.run.states.length - 1);
-      return computed.run.states[index];
+      return computed.run.states[Math.min(state.iteration, computed.run.states.length - 1)];
     }
 
     function exerciseStep() {
@@ -1408,7 +1680,13 @@
       els.exerciseIteration.value = String(exerciseState.iteration);
       els.exerciseIterationLabel.textContent = String(exerciseState.iteration);
       const { idx, current } = exerciseStep();
-      els.exercisePrompt.textContent = `Iteration ${idx}: start from w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}, with dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}, and eta = ${formatEta(computed.eta)}.`;
+      const nextWDirection = current.dw > 0 ? "decrease" : current.dw < 0 ? "increase" : "barely change";
+      const nextBDirection = current.db > 0 ? "decrease" : current.db < 0 ? "increase" : "barely change";
+      els.exercisePrompt.textContent = `Work through iteration ${idx} as if you were solving it on the board.`;
+      els.exerciseStateCard.textContent = `Current values: w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}, dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}, eta = ${formatEta(computed.eta)}.`;
+      els.exerciseReasoning.textContent = `Because gradient descent subtracts the gradient, w should ${nextWDirection} next and b should ${nextBDirection} next.`;
+      els.exerciseHint.textContent = `Hint: first compute eta·dw = ${formatNumber(computed.eta * current.dw, 4)} and eta·db = ${formatNumber(computed.eta * current.db, 4)}. Then subtract those from the current parameters.`;
+      els.exerciseRuleText.textContent = `Update rule: w_next = ${formatNumber(current.w, 4)} - ${formatEta(computed.eta)} x (${formatNumber(current.dw, 4)}), b_next = ${formatNumber(current.b, 4)} - ${formatEta(computed.eta)} x (${formatNumber(current.db, 4)}).`;
     }
 
     function showExerciseStep() {
@@ -1420,7 +1698,7 @@
     function showExerciseGuidedSolution() {
       const { idx, current, next } = exerciseStep();
       els.exerciseSolution.classList.remove("hidden");
-      els.exerciseSolution.innerHTML = `<strong>Worked solution for iteration ${idx}</strong><br>1. Read the current parameters: w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}.<br>2. Read the gradients: dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}.<br>3. Multiply by the learning rate eta = ${formatEta(computed.eta)} to get the step size.<br>4. Subtract that step from each parameter.<br>5. Result: <strong>w_next = ${formatNumber(next.w, 4)}</strong> and <strong>b_next = ${formatNumber(next.b, 4)}</strong>.`;
+      els.exerciseSolution.innerHTML = `<strong>Worked solution for iteration ${idx}</strong><br>Step 1. Read the current state: w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}, dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}.<br>Step 2. Multiply the gradients by the learning rate: eta·dw = ${formatNumber(computed.eta * current.dw, 4)}, eta·db = ${formatNumber(computed.eta * current.db, 4)}.<br>Step 3. Apply the gradient descent rule by subtraction.<br>Step 4. Final answer: <strong>w_next = ${formatNumber(next.w, 4)}</strong> and <strong>b_next = ${formatNumber(next.b, 4)}</strong>.`;
     }
 
     function checkExerciseAnswer() {
@@ -1439,75 +1717,24 @@
       }
     }
 
-    function setMode(mode) {
-      if (state.mode === mode) return;
-      stopAnimation();
-      state.mode = mode;
-      state.activePreset = "perfect";
-      applyPreset(mode === "linear" ? linearPresets.perfect : nnPresets.perfect, "perfect");
-    }
-
-    function renderPresetButtons() {
-      els.presets.innerHTML = "";
-      const presetGroup = state.mode === "linear" ? linearPresets : nnPresets;
-      for (const [key, preset] of Object.entries(presetGroup)) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `preset${state.activePreset === key ? " active" : ""}`;
-        button.textContent = preset.label;
-        button.addEventListener("click", () => applyPreset(preset, key));
-        els.presets.appendChild(button);
-      }
-    }
-
-    function applyPreset(preset, key) {
-      if (state.mode === "linear") {
-        state.feature = preset.feature;
-        state.scaleX = preset.scaleX;
+    function updateTextSystem() {
+      if (state.mode === "neural") {
+        els.formulaTitle.textContent = "Backprop Equations";
+        els.eq1.textContent = "h_l = activation(W_l*h_{l-1} + b_l)";
+        els.eq2.textContent = "y_hat = W_out*h_last + b_out";
+        els.eq3.textContent = "L = mean((y_hat - y)^2)";
+        els.eq4.textContent = "dW_l = backprop(dL/dy_hat)";
+        els.eq5.textContent = "W_l,b_l = W_l,b_l - eta*(dW_l,db_l)";
+        els.fitTitle.textContent = "Function Fit";
+        els.fitLegend.innerHTML = '<span class="swatch"><span class="dot data"></span>training data</span><span class="swatch"><span class="dot true"></span>true curve</span><span class="swatch"><span class="dot"></span>network</span>';
+        els.lossTitle.textContent = "Loss During Training";
+        els.lossLegend.innerHTML = '<span class="swatch"><span class="dot"></span>MSE</span>';
+        els.lossNote.textContent = "log scale";
+        els.landscapeTitle.textContent = "Layer Gradient Flow";
+        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot layer"></span>per-layer |grad|</span><span class="swatch"><span class="dot"></span>selected epoch</span>';
+        els.gradientTitle.textContent = "Network Diagram";
+        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot layer"></span>layers</span><span class="swatch"><span class="dot grad"></span>gradient strength</span>';
       } else {
-        state.nnActivation = preset.nnActivation;
-        state.nnDepth = preset.nnDepth;
-        state.nnWidth = preset.nnWidth;
-        state.nnInitPower = preset.nnInitPower;
-      }
-      state.etaPower = preset.etaPower;
-      state.epochs = preset.epochs;
-      state.iteration = preset.epochs;
-      state.activePreset = key;
-      syncControls();
-      stopAnimation();
-      updateAll();
-    }
-
-    function syncControls() {
-      els.feature.value = state.feature;
-      els.scaleX.checked = state.scaleX;
-      els.etaPower.value = state.etaPower;
-      els.epochs.value = state.epochs;
-      els.iteration.max = String(computed ? computed.run.states.length - 1 : state.epochs);
-      els.iteration.value = String(Math.min(state.iteration, Number(els.iteration.max)));
-      els.etaLabel.textContent = formatEta(10 ** state.etaPower);
-      els.epochsLabel.textContent = String(state.epochs);
-      els.iterationLabel.textContent = `${state.iteration} / ${els.iteration.max}`;
-      els.linearMode.classList.toggle("active", state.mode === "linear");
-      els.neuralMode.classList.toggle("active", state.mode === "neural");
-      els.linearControls.classList.toggle("hidden", state.mode !== "linear");
-      els.nnControls.classList.toggle("hidden", state.mode !== "neural");
-      els.exerciseSection.classList.toggle("hidden", state.mode !== "linear");
-      els.activation.value = state.nnActivation;
-      els.depth.value = state.nnDepth;
-      els.width.value = state.nnWidth;
-      els.initPower.value = state.nnInitPower;
-      els.activationLabel.textContent = state.nnActivation;
-      els.depthLabel.textContent = String(state.nnDepth);
-      els.widthLabel.textContent = String(state.nnWidth);
-      els.initLabel.textContent = formatEta(10 ** state.nnInitPower);
-      renderPresetButtons();
-      syncFormula();
-    }
-
-    function syncFormula() {
-      if (state.mode === "linear") {
         els.formulaTitle.textContent = "Notebook Equations";
         els.eq1.textContent = "y_hat = w*x + b";
         els.eq2.textContent = "L = mean((y_hat - y)^2)";
@@ -1516,62 +1743,49 @@
         els.eq5.textContent = "w,b = w,b - eta*(dw,db)";
         els.fitTitle.textContent = "Fit";
         els.fitLegend.innerHTML = '<span class="swatch"><span class="dot data"></span>data</span><span class="swatch"><span class="dot"></span>gradient descent</span><span class="swatch"><span class="dot closed"></span>closed form</span>';
+        els.lossTitle.textContent = "Loss During Training";
+        els.lossLegend.innerHTML = '<span class="swatch"><span class="dot"></span>MSE</span>';
+        els.lossNote.textContent = "log scale";
         els.landscapeTitle.textContent = "Loss Landscape";
-        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot closed"></span>objective slice</span><span class="swatch"><span class="dot"></span>current iterate</span>';
-        els.gradientTitle.textContent = "Gradient Dynamics";
-        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot grad"></span>gradient norm</span><span class="swatch"><span class="dot"></span>parameter step</span>';
-      } else {
-        els.formulaTitle.textContent = "Neural Network Equations";
-        els.eq1.textContent = "a(l) = phi(W(l)a(l-1) + b(l))";
-        els.eq2.textContent = "L = mean((y_hat - y)^2)";
-        els.eq3.textContent = "delta(l) = (W(l+1)^T delta(l+1)) o phi'(z(l))";
-        els.eq4.textContent = "dW(l) = delta(l) a(l-1)^T";
-        els.eq5.textContent = "W,b = W,b - eta*(dW,db)";
-        els.fitTitle.textContent = "Function Fit";
-        els.fitLegend.innerHTML = '<span class="swatch"><span class="dot data"></span>samples</span><span class="swatch"><span class="dot true"></span>true curve</span><span class="swatch"><span class="dot"></span>network prediction</span>';
-        els.landscapeTitle.textContent = "Gradient Flow Across Layers";
-        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot grad"></span>layer gradient magnitude</span>';
-        els.gradientTitle.textContent = "Network View";
-        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot layer"></span>hidden layers</span><span class="swatch"><span class="dot grad"></span>connection intensity</span>';
+        els.landscapeLegend.innerHTML = '<span class="swatch"><span class="dot"></span>current w</span><span class="swatch"><span class="dot closed"></span>optimal w</span>';
+        els.gradientTitle.textContent = "Gradient Magnitude";
+        els.gradientLegend.innerHTML = '<span class="swatch"><span class="dot grad"></span>|grad|</span><span class="swatch"><span class="dot"></span>eta*|grad|</span>';
       }
     }
 
-    function updateAll() {
-      computed = computeModel();
-      state.iteration = Math.min(state.iteration, computed.run.states.length - 1);
-      syncControls();
-      updateMetrics();
-      updateExercisePrompt();
-      drawAll();
-    }
-
     function updateMetrics() {
-      const diagnosis = computed.diagnosis;
+      const item = currentState();
+      const { diagnosis, eta } = computed;
+
+      els.diagnosisCard.dataset.state = diagnosis.key;
       els.health.textContent = diagnosis.label;
       els.healthDetail.textContent = diagnosis.detail;
-      els.diagnosisCard.dataset.state = diagnosis.key;
 
       if (computed.mode === "neural") {
-        const item = currentState();
-        els.mseName.textContent = "Current MSE";
-        els.closedName.textContent = "Architecture";
-        els.paramsName.textContent = "Activation";
-        els.stepName.textContent = "Gradient Spread";
-        els.mse.textContent = formatNumber(item.mse, 4);
-        els.mseGap.textContent = `vs start ${formatNumber(item.mse / computed.run.states[0].mse, 3)}x`;
-        els.closedMse.textContent = `${computed.run.depth} x ${computed.run.width}`;
-        els.closedParams.textContent = `init ${formatEta(computed.initScale)}`;
-        els.params.textContent = computed.run.activation;
-        els.bias.textContent = `${computed.run.states.length - 1} updates`;
-        els.stepSize.textContent = formatNumber(item.maxGrad / Math.max(item.minGrad, 1e-18), 2);
-        els.gradNorm.textContent = `range ${formatNumber(item.minGrad, 3)} .. ${formatNumber(item.maxGrad, 3)}`;
-        els.featureStats.textContent = "nonlinear toy target";
-        els.fitNote.textContent = `iteration ${state.iteration}`;
-        els.landscapeNote.textContent = `${computed.run.depth} hidden layers`;
-        els.gradientNote.textContent = `eta ${formatEta(computed.eta)}`;
+        const final = computed.run.states[computed.run.states.length - 1];
+        const first = computed.run.states[0];
+        const inputGrad = item.gradNorms[0] || 0;
+        const outputGrad = item.gradNorms[item.gradNorms.length - 1] || 0;
+        const ratio = inputGrad / Math.max(outputGrad, 1e-18);
+
+        els.mseName.textContent = "Network MSE";
+        els.closedName.textContent = "Best MSE";
+        els.paramsName.textContent = "Architecture";
+        els.stepName.textContent = "Gradient Flow";
+        els.mse.textContent = formatNumber(item.loss, 5);
+        els.mseGap.textContent = `start ${formatNumber(first.loss, 4)} · final ${formatNumber(final.loss, 4)}`;
+        els.closedMse.textContent = formatNumber(computed.run.bestLoss, 5);
+        els.closedParams.textContent = `${computed.run.activation} · init ${formatNumber(computed.run.initScale, 3)}`;
+        els.params.textContent = `${computed.run.depth} x ${computed.run.width}`;
+        els.bias.textContent = `${computed.run.depth} hidden layers · ${computed.run.layerCount} trained layers`;
+        els.stepSize.textContent = formatNumber(item.maxGrad, 4);
+        els.gradNorm.textContent = `input/output ${formatNumber(ratio, 3)}`;
+        els.featureStats.textContent = "";
+        els.fitNote.textContent = `epoch ${state.iteration}`;
+        els.landscapeNote.textContent = `layer spread ${formatNumber(item.maxGrad / Math.max(item.minGrad, 1e-18), 2)}`;
+        els.gradientNote.textContent = `eta ${formatEta(eta)}`;
       } else {
-        const { x, closed, eta } = computed;
-        const item = currentState();
+        const { closed, x } = computed;
         const gap = item.loss - closed.mse;
         const gradNorm = Math.hypot(item.dw, item.db);
         const step = eta * gradNorm;
@@ -2117,3 +2331,5 @@
   </script>
 </body>
 </html>
+
+
