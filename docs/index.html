@@ -363,6 +363,58 @@
       overflow-wrap: anywhere;
     }
 
+    .exercise-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbfd;
+    }
+
+    .exercise-kicker {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .exercise-text,
+    .exercise-solution {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .exercise-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .exercise-grid input {
+      min-height: 36px;
+    }
+
+    .exercise-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .exercise-feedback {
+      min-height: 18px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .exercise-solution {
+      padding: 10px;
+      border: 1px dashed var(--soft);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -724,6 +776,42 @@
           </div>
         </section>
 
+        <section class="section" id="exerciseSection">
+          <div class="label-row">Student Exercise</div>
+          <div class="exercise-card">
+            <div class="exercise-kicker">Try it first, or reveal it right away</div>
+            <div class="exercise-text" id="exercisePrompt">Pick one training step and predict the next parameter update.</div>
+            <div class="exercise-grid">
+              <div class="control">
+                <div class="label-row">
+                  <label for="exerciseIteration">Challenge iteration</label>
+                  <span class="readout" id="exerciseIterationLabel">1</span>
+                </div>
+                <input id="exerciseIteration" type="range" min="1" max="25" step="1" value="1">
+              </div>
+              <div class="control">
+                <div class="label-row">
+                  <label for="exerciseNextW">Your next w</label>
+                </div>
+                <input id="exerciseNextW" type="number" step="any" placeholder="w_next">
+              </div>
+              <div class="control">
+                <div class="label-row">
+                  <label for="exerciseNextB">Your next b</label>
+                </div>
+                <input id="exerciseNextB" type="number" step="any" placeholder="b_next">
+              </div>
+            </div>
+            <div class="exercise-actions">
+              <button class="command" id="exerciseCheck" type="button">Check</button>
+              <button class="command secondary" id="exerciseReveal" type="button">Show step</button>
+              <button class="command secondary" id="exerciseGuided" type="button">Show solution</button>
+            </div>
+            <div class="exercise-feedback" id="exerciseFeedback"></div>
+            <div class="exercise-solution hidden" id="exerciseSolution"></div>
+          </div>
+        </section>
+
         <section class="section">
           <div class="trail-card">
             <img src="https://cdn.jsdelivr.net/gh/PauPerezT/Gradient_Descent_2026@main/site/deck_media/image32.png" alt="Small and large learning-rate hiking analogy from the lecture slides">
@@ -859,7 +947,7 @@
       exploding: { label: "Exploding", nnActivation: "relu", nnDepth: 6, nnWidth: 11, nnInitPower: 0.65, etaPower: -0.15, epochs: 260 },
       reluStable: { label: "ReLU stable", nnActivation: "relu", nnDepth: 4, nnWidth: 10, nnInitPower: -0.15, etaPower: -1.25, epochs: 1400 },
       deepTanh: { label: "Deep tanh", nnActivation: "tanh", nnDepth: 8, nnWidth: 8, nnInitPower: -0.58, etaPower: -1.72, epochs: 2600 },
-      tinySteps: { label: "Tiny steps", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -0.25, etaPower: -4.2, epochs: 2200 }
+      tinySteps: { label: "Tiny steps", nnActivation: "tanh", nnDepth: 3, nnWidth: 10, nnInitPower: -4.2, etaPower: -4.2, epochs: 2200 }
     };
 
     const state = {
@@ -926,6 +1014,17 @@
       eq3: document.getElementById("eq3"),
       eq4: document.getElementById("eq4"),
       eq5: document.getElementById("eq5"),
+      exerciseSection: document.getElementById("exerciseSection"),
+      exercisePrompt: document.getElementById("exercisePrompt"),
+      exerciseIteration: document.getElementById("exerciseIteration"),
+      exerciseIterationLabel: document.getElementById("exerciseIterationLabel"),
+      exerciseNextW: document.getElementById("exerciseNextW"),
+      exerciseNextB: document.getElementById("exerciseNextB"),
+      exerciseCheck: document.getElementById("exerciseCheck"),
+      exerciseReveal: document.getElementById("exerciseReveal"),
+      exerciseGuided: document.getElementById("exerciseGuided"),
+      exerciseFeedback: document.getElementById("exerciseFeedback"),
+      exerciseSolution: document.getElementById("exerciseSolution"),
       fitTitle: document.getElementById("fitTitle"),
       fitLegend: document.getElementById("fitLegend"),
       landscapeTitle: document.getElementById("landscapeTitle"),
@@ -941,6 +1040,7 @@
     let computed = null;
     let animationFrame = null;
     let lastTick = 0;
+    let exerciseState = { iteration: 1 };
 
     const neuralX = Array.from({ length: 72 }, (_, i) => -1 + (2 * i) / 71);
     const neuralY = neuralX.map(x => 0.62 * Math.sin(2.4 * x) + 0.16 * Math.cos(6.2 * x));
@@ -1282,6 +1382,63 @@
       return computed.run.states[index];
     }
 
+    function exerciseStep() {
+      const maxStep = Math.max(1, computed.run.states.length - 2);
+      const idx = Math.max(1, Math.min(exerciseState.iteration, maxStep));
+      return {
+        idx,
+        current: computed.run.states[idx],
+        next: computed.run.states[idx + 1]
+      };
+    }
+
+    function resetExerciseView() {
+      els.exerciseFeedback.textContent = "";
+      els.exerciseSolution.classList.add("hidden");
+      els.exerciseSolution.innerHTML = "";
+    }
+
+    function updateExercisePrompt() {
+      if (state.mode !== "linear") return;
+      const maxStep = Math.max(1, Math.min(220, computed.run.states.length - 2));
+      if (!exerciseState.iteration || exerciseState.iteration > maxStep) {
+        exerciseState.iteration = Math.min(12, maxStep);
+      }
+      els.exerciseIteration.max = String(maxStep);
+      els.exerciseIteration.value = String(exerciseState.iteration);
+      els.exerciseIterationLabel.textContent = String(exerciseState.iteration);
+      const { idx, current } = exerciseStep();
+      els.exercisePrompt.textContent = `Iteration ${idx}: start from w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}, with dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}, and eta = ${formatEta(computed.eta)}.`;
+    }
+
+    function showExerciseStep() {
+      const { current, next } = exerciseStep();
+      els.exerciseSolution.classList.remove("hidden");
+      els.exerciseSolution.innerHTML = `Use <strong>w_next = w - eta·dw</strong> and <strong>b_next = b - eta·db</strong>.<br>w_next = ${formatNumber(current.w, 4)} - ${formatEta(computed.eta)} x (${formatNumber(current.dw, 4)}) = <strong>${formatNumber(next.w, 4)}</strong><br>b_next = ${formatNumber(current.b, 4)} - ${formatEta(computed.eta)} x (${formatNumber(current.db, 4)}) = <strong>${formatNumber(next.b, 4)}</strong>`;
+    }
+
+    function showExerciseGuidedSolution() {
+      const { idx, current, next } = exerciseStep();
+      els.exerciseSolution.classList.remove("hidden");
+      els.exerciseSolution.innerHTML = `<strong>Worked solution for iteration ${idx}</strong><br>1. Read the current parameters: w = ${formatNumber(current.w, 4)}, b = ${formatNumber(current.b, 4)}.<br>2. Read the gradients: dw = ${formatNumber(current.dw, 4)}, db = ${formatNumber(current.db, 4)}.<br>3. Multiply by the learning rate eta = ${formatEta(computed.eta)} to get the step size.<br>4. Subtract that step from each parameter.<br>5. Result: <strong>w_next = ${formatNumber(next.w, 4)}</strong> and <strong>b_next = ${formatNumber(next.b, 4)}</strong>.`;
+    }
+
+    function checkExerciseAnswer() {
+      const { next } = exerciseStep();
+      const wGuess = Number(els.exerciseNextW.value);
+      const bGuess = Number(els.exerciseNextB.value);
+      let score = 0;
+      if (Number.isFinite(wGuess) && Math.abs(wGuess - next.w) < 0.02) score += 1;
+      if (Number.isFinite(bGuess) && Math.abs(bGuess - next.b) < 0.02) score += 1;
+      if (score === 2) {
+        els.exerciseFeedback.textContent = "Correct. That update matches the solution step.";
+      } else if (score === 1) {
+        els.exerciseFeedback.textContent = "Halfway there. One parameter is right; the other needs another pass.";
+      } else {
+        els.exerciseFeedback.textContent = "Not quite yet. You can reveal just this step or open the full worked solution.";
+      }
+    }
+
     function setMode(mode) {
       if (state.mode === mode) return;
       stopAnimation();
@@ -1336,6 +1493,7 @@
       els.neuralMode.classList.toggle("active", state.mode === "neural");
       els.linearControls.classList.toggle("hidden", state.mode !== "linear");
       els.nnControls.classList.toggle("hidden", state.mode !== "neural");
+      els.exerciseSection.classList.toggle("hidden", state.mode !== "linear");
       els.activation.value = state.nnActivation;
       els.depth.value = state.nnDepth;
       els.width.value = state.nnWidth;
@@ -1383,6 +1541,7 @@
       state.iteration = Math.min(state.iteration, computed.run.states.length - 1);
       syncControls();
       updateMetrics();
+      updateExercisePrompt();
       drawAll();
     }
 
@@ -1594,11 +1753,10 @@
       if (points.length > 1) drawLine(plot.ctx, points, plot.xMap, plot.yMap, statusColor(), 2.8);
 
       const selected = currentState();
-      const activeLoss = computed.mode === "neural" ? selected.mse : selected.loss;
-      if (Number.isFinite(activeLoss) && activeLoss > 0) {
+      if (Number.isFinite(selected.loss) && selected.loss > 0) {
         plot.ctx.fillStyle = colors.ink;
         plot.ctx.beginPath();
-        plot.ctx.arc(plot.xMap(state.iteration), plot.yMap(Math.log10(activeLoss)), 4.5, 0, Math.PI * 2);
+        plot.ctx.arc(plot.xMap(state.iteration), plot.yMap(Math.log10(selected.loss)), 4.5, 0, Math.PI * 2);
         plot.ctx.fill();
       }
     }
@@ -1918,6 +2076,29 @@
         syncControls();
         updateMetrics();
         drawAll();
+      });
+
+      els.exerciseIteration.addEventListener("input", () => {
+        exerciseState.iteration = Number(els.exerciseIteration.value);
+        updateExercisePrompt();
+        resetExerciseView();
+      });
+
+      els.exerciseCheck.addEventListener("click", () => {
+        if (state.mode !== "linear") return;
+        checkExerciseAnswer();
+      });
+
+      els.exerciseReveal.addEventListener("click", () => {
+        if (state.mode !== "linear") return;
+        showExerciseStep();
+        els.exerciseFeedback.textContent = "Here is the direct next-step calculation.";
+      });
+
+      els.exerciseGuided.addEventListener("click", () => {
+        if (state.mode !== "linear") return;
+        showExerciseGuidedSolution();
+        els.exerciseFeedback.textContent = "Full worked explanation opened.";
       });
 
       els.play.addEventListener("click", () => {
