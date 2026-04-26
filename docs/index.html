@@ -88,6 +88,39 @@
       text-underline-offset: 3px;
     }
 
+    .launch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .launch-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      text-align: center;
+    }
+
+    .launch-link.primary {
+      background: var(--blue);
+      color: #fff;
+      border: 1px solid var(--blue);
+    }
+
+    .launch-link.secondary {
+      background: #fff;
+      color: var(--blue);
+      border: 1px solid var(--line);
+    }
+
     .deck-kicker {
       margin-bottom: 5px;
       color: var(--muted);
@@ -667,6 +700,7 @@
         text-align: left;
       }
 
+      .launch-grid,
       .presets,
       .button-row {
         grid-template-columns: 1fr;
@@ -684,7 +718,11 @@
       </div>
       <div class="source">
         Dr.-Ing. Paula A. Perez-Toro<br>
-        Exercise notebook: <a href="student_exercise.ipynb" download>download .ipynb</a><br>
+        Exercise notebook for students<br>
+        <div class="launch-grid">
+          <a class="launch-link primary" href="student_exercise.ipynb" download>Download Notebook</a>
+          <a class="launch-link secondary" href="https://colab.research.google.com/github/PauPerezT/Gradient_Descent_2026/blob/main/docs/student_exercise.ipynb" target="_blank" rel="noreferrer">Open in Colab</a>
+        </div>
         Dataset: <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_diabetes.html">scikit-learn diabetes</a>
       </div>
     </header>
@@ -833,7 +871,10 @@
               <div class="guide-step">
                 <strong>Student task</strong>
                 <div class="exercise-text">Open the exercise notebook in Jupyter and write the missing code there. This website is only a support tool for understanding the updates and checking intuition.</div>
-                <div class="hint-box"><a href="student_exercise.ipynb" download>Download the student notebook</a></div>
+                <div class="launch-grid">
+                  <a class="launch-link primary" href="student_exercise.ipynb" download>Download Notebook</a>
+                  <a class="launch-link secondary" href="https://colab.research.google.com/github/PauPerezT/Gradient_Descent_2026/blob/main/docs/student_exercise.ipynb" target="_blank" rel="noreferrer">Open in Colab</a>
+                </div>
               </div>
               <div class="control">
                 <div class="label-row">
